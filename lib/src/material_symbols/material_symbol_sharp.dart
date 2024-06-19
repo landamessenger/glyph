@@ -10,7 +10,7 @@ class MaterialSymbolSharp extends IconData {
   List<String>? get fontFamilyFallback => null;
 
   @override
-  String? get fontPackage => 'icons';
+  String? get fontPackage => 'glyph';
 
   @override
   bool get matchTextDirection => true;

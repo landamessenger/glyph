@@ -1,3 +1,7 @@
+## 1.0.2
+
+* Fixed `fontPackage` value resolution.
+
 ## 1.0.1
 
 * Renamed `icons.dart` to `glyph.dart`.
