@@ -8,7 +8,6 @@ const containerA = 'static const IconData ';
 const containerB = ' = IconData(';
 
 Future<IconsInfo> readDart(String pathFile) {
-  String? version;
   List<IconInfo> icons = [];
   return File(pathFile).readAsLines().then((lines) {
     for (var line in lines) {
