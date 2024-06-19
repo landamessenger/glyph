@@ -1,3 +1,3 @@
 ## 1.0.0
 
-* TODO: Describe initial release.
+* First version. Includes the icon sets of `Material`, `Material Design`, `Material Symbols` and `Cupertino`.
