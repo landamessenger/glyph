@@ -1,4 +1,4 @@
-library icons;
+library glyph;
 
 import 'src/cupertino_icons/cupertino_icons.dart';
 import 'src/material_design_icons/material_design_icons.dart';
