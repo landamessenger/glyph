@@ -1,0 +1,1 @@
+    IconData _ICON_NAME_ = const MaterialIcon(0x_ICON_CODE_);

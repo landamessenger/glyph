@@ -1,0 +1,40 @@
+name: icons
+description: "Collection of icons from various popular design systems, including Material, Material Design, Material Symbols, and Cupertino"
+version: 1.0.0
+homepage: https://github.com/landamessenger/icons
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  ttf_parser:
+    path: ../dart-ttf-parser
+
+flutter:
+  fonts:
+    - family: Cupertino Icons
+      fonts:
+        - asset: lib/fonts/cupertinoicons-webfont.ttf
+    - family: Material Design Icons
+      fonts:
+        - asset: lib/fonts/materialdesignicons-webfont.ttf
+    - family: Material Icons
+      fonts:
+        - asset: lib/fonts/materialicons-webfont.ttf
+    - family: Material Symbols Outlined
+      fonts:
+        - asset: lib/fonts/materialsymbolsoutlined-webfont.ttf
+    - family: Material Symbols Rounded
+      fonts:
+        - asset: lib/fonts/materialsymbolsrounded-webfont.ttf
+    - family: Material Symbols Sharp
+      fonts:
+        - asset: lib/fonts/materialsymbolssharp-webfont.ttf

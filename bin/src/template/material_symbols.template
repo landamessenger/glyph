@@ -1,0 +1,7 @@
+import 'package:flutter/widgets.dart';
+
+import 'material_symbol__TYPE_.dart';
+
+class MaterialSymbols_TYPE_CAPITALIZE_ {
+_ICONS_
+}
