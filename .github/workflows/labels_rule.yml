@@ -26,16 +26,19 @@ jobs:
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
           LABEL="${{ env.LABEL }}"
 
-          # Sanitize the title: remove non-alphanumeric characters and spaces
-          SANITIZED_TITLE=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]+/-/g' | sed 's/^-//' | sed 's/-$//')
+          # Sanitizar el título: eliminar caracteres no alfanuméricos y reemplazar los espacios con guiones
+          SANITIZED_TITLE=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9 ]//g' | sed 's/ /-/g')
 
-          # Ensure the issue number is not duplicated in the title
+          # Asegurarse de que el número de la issue no se repita en el título
           SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed "s/^${ISSUE_NUMBER}-//")
 
-          # Replace spaces with hyphens (important for Git branch names)
-          SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed 's/ /-/g')
+          # Reemplazar múltiples guiones consecutivos por uno solo
+          SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed 's/-\+/-/g')
 
-          # Determine branch types
+          # Quitar guiones al principio o al final
+          SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed 's/^-//' | sed 's/-$//')
+
+          # Determinar los tipos de rama
           if [[ "$LABEL" == "bugfix" ]]; then
             BRANCH_TYPE="bugfix"
             OPPOSITE_BRANCH_TYPE="feature"
@@ -44,7 +47,7 @@ jobs:
             OPPOSITE_BRANCH_TYPE="bugfix"
           fi
 
-          # Construct branch names
+          # Construir los nombres de las ramas
           NEW_BRANCH_NAME="$BRANCH_TYPE/${ISSUE_NUMBER}-${SANITIZED_TITLE}"
           OLD_BRANCH_PREFIX="$OPPOSITE_BRANCH_TYPE/${ISSUE_NUMBER}-"
 
