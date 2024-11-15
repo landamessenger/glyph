@@ -76,6 +76,7 @@ jobs:
           echo "BRANCH_TYPE=$BRANCH_TYPE" >> $GITHUB_ENV
 
       - name: Create and Push New Branch
+        if: ${{ env.labels && 'in progress' in env.labels }}
         run: |
           SANITIZED_TITLE="${{ env.SANITIZED_TITLE }}"
           BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
@@ -94,7 +95,7 @@ jobs:
           fi
 
       - name: Delete Unnecessary Branches (if exists)
-        if: ${{ env.ACTION == 'labeled' }}
+        if: ${{ env.labels && 'in progress' in env.labels }}
         run: |
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
           BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
@@ -109,14 +110,34 @@ jobs:
             # Si la rama no es del tipo actual (por ejemplo, si la issue está en "bugfix", no eliminamos "bugfix")
             if [[ "$TYPE" != "$BRANCH_TYPE" ]]; then
               # Comprobar si la rama existe en el repositorio remoto
-              REMOTE_BRANCH=$(git ls-remote --heads origin | grep "^refs/heads/$BRANCH_NAME" | awk '{print $2}' | sed 's|refs/heads/||')
-
-              if [ -n "$REMOTE_BRANCH" ]; then
+              if git branch -r | grep "origin/$BRANCH_NAME"; then
                 echo "Deleting unnecessary branch: $BRANCH_NAME"
                 git push origin --delete "$BRANCH_NAME"
               else
                 echo "No branch found to delete: $BRANCH_NAME"
               fi
+            fi
+          done
+
+      - name: Delete All Branches (if exists)
+        if: ${{ env.labels && !contains(env.labels, 'in progress') }}
+        run: |
+          ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
+          BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
+
+          # Definir todas las posibilidades de ramas
+          BRANCH_TYPES=("feature" "bugfix" "hotfix")
+
+          # Recorrer las posibles ramas
+          for TYPE in "${BRANCH_TYPES[@]}"; do
+            BRANCH_NAME="${TYPE}/${ISSUE_NUMBER}-${SANITIZED_TITLE}"
+
+            # Comprobar si la rama existe en el repositorio remoto
+            if git branch -r | grep "origin/$BRANCH_NAME"; then
+              echo "Deleting unnecessary branch: $BRANCH_NAME"
+              git push origin --delete "$BRANCH_NAME"
+            else
+              echo "No branch found to delete: $BRANCH_NAME"
             fi
           done
       
