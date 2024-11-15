@@ -73,7 +73,7 @@ jobs:
           git push origin "${{ env.NEW_BRANCH_NAME }}"
 
   delete-branch-on-unlabeled:
-    if: github.event.action == 'unlabeled' && github.event.label.name == 'in progress' || github.event.label.name == 'bugfix'
+    if: github.event.action == 'unlabeled' && (github.event.label.name == 'in progress' || github.event.label.name == 'bugfix')
     runs-on: ubuntu-latest
 
     steps:
@@ -90,14 +90,20 @@ jobs:
         run: |
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
           LABEL="${{ env.LABEL }}"
-          BRANCH_TYPE="${{ env.LABEL }}"
+          BRANCH_TYPE="${LABEL}"
           BRANCH_PREFIX="$BRANCH_TYPE/${ISSUE_NUMBER}-"
-          echo "BRANCH_PREFIX=$BRANCH_PREFIX" >> $GITHUB_ENV
-          
-          BRANCH_PREFIX="${{ env.BRANCH_PREFIX }}"
-          REMOTE_BRANCH=$(git ls-remote --heads origin | grep "$BRANCH_PREFIX" | awk '{print $2}' | sed 's|refs/heads/||')
+
+          REMOTE_BRANCH=$(git ls-remote --heads origin | grep "^refs/heads/$BRANCH_PREFIX" | awk '{print $2}' | sed 's|refs/heads/||')
 
           if [ -n "$REMOTE_BRANCH" ]; then
+            PROTECTED_BRANCHES=("master" "main" "develop") # Lista de ramas protegidas
+            for branch in "${PROTECTED_BRANCHES[@]}"; do
+              if [[ "$REMOTE_BRANCH" == "$branch" ]]; then
+                echo "Error: Attempted to delete a protected branch: $REMOTE_BRANCH"
+                exit 1
+              fi
+            done
+
             echo "Deleting branch: $REMOTE_BRANCH"
             git push origin --delete "$REMOTE_BRANCH"
           else
