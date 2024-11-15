@@ -25,13 +25,16 @@ jobs:
           ISSUE_TITLE="${{ env.ISSUE_TITLE }}"
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
           LABEL="${{ env.LABEL }}"
-  
-          # Sanitize the title
+
+          # Sanitize the title: remove non-alphanumeric characters and spaces
           SANITIZED_TITLE=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]+/-/g' | sed 's/^-//' | sed 's/-$//')
-  
-          # Remove the issue number if it already exists
+
+          # Ensure the issue number is not duplicated in the title
           SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed "s/^${ISSUE_NUMBER}-//")
-  
+
+          # Replace spaces with hyphens (important for Git branch names)
+          SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed 's/ /-/g')
+
           # Determine branch types
           if [[ "$LABEL" == "bugfix" ]]; then
             BRANCH_TYPE="bugfix"
@@ -40,11 +43,11 @@ jobs:
             BRANCH_TYPE="feature"
             OPPOSITE_BRANCH_TYPE="bugfix"
           fi
-  
+
           # Construct branch names
           NEW_BRANCH_NAME="$BRANCH_TYPE/${ISSUE_NUMBER}-${SANITIZED_TITLE}"
           OLD_BRANCH_PREFIX="$OPPOSITE_BRANCH_TYPE/${ISSUE_NUMBER}-"
-  
+
           echo "NEW_BRANCH_NAME=$NEW_BRANCH_NAME" >> $GITHUB_ENV
           echo "OLD_BRANCH_PREFIX=$OLD_BRANCH_PREFIX" >> $GITHUB_ENV
 
@@ -53,7 +56,7 @@ jobs:
         run: |
           OLD_BRANCH_PREFIX="${{ env.OLD_BRANCH_PREFIX }}"
           REMOTE_BRANCH=$(git ls-remote --heads origin | grep "^refs/heads/$OLD_BRANCH_PREFIX" | awk '{print $2}' | sed 's|refs/heads/||')
-  
+
           if [ -n "$REMOTE_BRANCH" ]; then
             echo "Deleting branch: $REMOTE_BRANCH"
             git push origin --delete "$REMOTE_BRANCH"
