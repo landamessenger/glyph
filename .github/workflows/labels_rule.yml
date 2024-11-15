@@ -38,23 +38,24 @@ jobs:
       - name: Get Labels and Determine Branch Type
         id: determine_branch_type
         run: |
-          ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
-
-          # Obtener todas las etiquetas de la issue
-          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository_owner }}/${{ github.repository_name }}/issues/$ISSUE_NUMBER/labels")
-
-          # Verificar que la respuesta no esté vacía
-          if [[ -z "$RESPONSE" ]]; then
-            echo "No labels found."
-            exit 1
-          fi
-
-          # Extraer las etiquetas y almacenarlas en un array
+          ISSUE_NUMBER="${{ github.event.issue.number }}"
+          REPO_OWNER="${{ github.repository_owner }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+          GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          
+          # Fetch the labels for the issue
+          RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/issues/$ISSUE_NUMBER/labels")
+          
+          # Extract label names and store them in an array
           LABELS=($(echo "$RESPONSE" | jq -r '.[].name'))
-
+          
+          # Display the labels
           echo "Labels: ${LABELS[@]}"
-
+          
+          # Store labels as an environment variable for use in later steps
+          echo "labels=${LABELS[@]}" >> $GITHUB_ENV
+          
           # Determinar el tipo de rama según las etiquetas
           BRANCH_TYPE="feature"  # Por defecto, tipo de rama "feature"
           for LABEL in "${LABELS[@]}"; do
