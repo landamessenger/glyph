@@ -19,9 +19,6 @@ jobs:
           echo "LABEL=${{ github.event.label.name }}" >> $GITHUB_ENV
           echo "ACTION=${{ github.event.action }}" >> $GITHUB_ENV
 
-      - name: Format Branch Name
-        id: format_branch
-        run: |
           ISSUE_TITLE="${{ env.ISSUE_TITLE }}"
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
           LABEL="${{ env.LABEL }}"
@@ -39,7 +36,7 @@ jobs:
           SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed 's/^-//' | sed 's/-$//')
 
           # Determinar los tipos de rama
-          if [[ "$LABEL" == "bugfix" ]]; then
+          if [[ "$LABEL" == "bug" ]]; then
             BRANCH_TYPE="bugfix"
             OPPOSITE_BRANCH_TYPE="feature"
           else
@@ -83,41 +80,3 @@ jobs:
         run: |
           git switch -c "${{ env.NEW_BRANCH_NAME }}"
           git push origin "${{ env.NEW_BRANCH_NAME }}"
-
-  delete-branch-on-unlabeled:
-    if: github.event.action == 'unlabeled' && (github.event.label.name == 'in progress' || github.event.label.name == 'bugfix')
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Get Issue Details
-        id: issue_details
-        run: |
-          echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
-          echo "LABEL=${{ github.event.label.name }}" >> $GITHUB_ENV
-
-      - name: Delete Branch
-        run: |
-          ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
-          LABEL="${{ env.LABEL }}"
-          BRANCH_TYPE="${LABEL}"
-          BRANCH_PREFIX="$BRANCH_TYPE/${ISSUE_NUMBER}-"
-
-          REMOTE_BRANCH=$(git ls-remote --heads origin | grep "^refs/heads/$BRANCH_PREFIX" | awk '{print $2}' | sed 's|refs/heads/||')
-
-          if [ -n "$REMOTE_BRANCH" ]; then
-            PROTECTED_BRANCHES=("master" "main" "develop") # Lista de ramas protegidas
-            for branch in "${PROTECTED_BRANCHES[@]}"; do
-              if [[ "$REMOTE_BRANCH" == "$branch" ]]; then
-                echo "Error: Attempted to delete a protected branch: $REMOTE_BRANCH"
-                exit 1
-              fi
-            done
-
-            echo "Deleting branch: $REMOTE_BRANCH"
-            git push origin --delete "$REMOTE_BRANCH"
-          else
-            echo "No branch found for prefix: $BRANCH_PREFIX"
-          fi
