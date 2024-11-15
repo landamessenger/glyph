@@ -11,15 +11,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const issueNumber = context.issue.number;
+            const issueNumber = context.payload.issue.number;
             const issueTitle = context.payload.issue.title;
-            const formattedTitle = `${issueNumber} - ${issueTitle.replace(/^\d+\s*-\s*/, '')}`;
-            
-            // Check if the current title matches the expected format
-            if (issueTitle !== formattedTitle) {
-              // Update the issue title to ensure it includes the issue number at the beginning
+
+            const titlePattern = new RegExp(`^\\d+\\s*-\\s*`);
+            if (!titlePattern.test(issueTitle)) {
+              const formattedTitle = `${issueNumber} - ${issueTitle}`;
               await github.rest.issues.update({
-                ...context.issue,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
                 title: formattedTitle
               });
             }
