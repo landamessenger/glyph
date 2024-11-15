@@ -4,34 +4,6 @@ on:
     types: [labeled, unlabeled]
 
 jobs:
-  check_labels:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Get Issue Labels and Store in Array
-        id: get_labels
-        run: |
-          ISSUE_NUMBER="${{ github.event.issue.number }}"
-          REPO_OWNER="${{ github.repository_owner }}"
-          REPO_NAME="${{ github.event.repository.name }}"
-          GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-          
-          # Fetch the labels for the issue
-          RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/issues/$ISSUE_NUMBER/labels")
-          
-          # Extract label names and store them in an array
-          LABELS=($(echo "$RESPONSE" | jq -r '.[].name'))
-          
-          # Display the labels
-          echo "Labels: ${LABELS[@]}"
-          
-          # Store labels as an environment variable for use in later steps
-          echo "labels=${LABELS[@]}" >> $GITHUB_ENV
-
   create-or-delete-branch:
     runs-on: ubuntu-latest
 
@@ -44,14 +16,12 @@ jobs:
         run: |
           echo "ISSUE_TITLE=${{ github.event.issue.title }}" >> $GITHUB_ENV
           echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
-          echo "LABEL=${{ github.event.label.name }}" >> $GITHUB_ENV
           echo "ACTION=${{ github.event.action }}" >> $GITHUB_ENV
 
           ISSUE_TITLE="${{ env.ISSUE_TITLE }}"
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
-          LABEL="${{ env.LABEL }}"
 
-          # Sanitizar el título: eliminar caracteres no alfanuméricos y reemplazar los espacios con guiones
+          # Sanitizar el título
           SANITIZED_TITLE=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9 ]//g' | sed 's/ /-/g')
 
           # Asegurarse de que el número de la issue no se repita en el título
@@ -62,52 +32,80 @@ jobs:
 
           # Quitar guiones al principio o al final
           SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed 's/^-//' | sed 's/-$//')
-          
-          echo "branch title $SANITIZED_TITLE"
-          echo "label $LABEL"
-          
-          # Determinar los tipos de rama
-          if [[ "$LABEL" == "bug" ]]; then
-            BRANCH_TYPE="bugfix"
-            OPPOSITE_BRANCH_TYPE="feature"
-          else
-            BRANCH_TYPE="feature"
-            OPPOSITE_BRANCH_TYPE="bugfix"
-          fi
 
-          # Construir los nombres de las ramas
-          NEW_BRANCH_NAME="$BRANCH_TYPE/${ISSUE_NUMBER}-${SANITIZED_TITLE}"
-          OLD_BRANCH_PREFIX="$OPPOSITE_BRANCH_TYPE/${ISSUE_NUMBER}-"
+          echo "branch title: $SANITIZED_TITLE"
 
-          echo "NEW_BRANCH_NAME=$NEW_BRANCH_NAME" >> $GITHUB_ENV
-          echo "OLD_BRANCH_PREFIX=$OLD_BRANCH_PREFIX" >> $GITHUB_ENV
-
-      - name: Delete Opposite Branch (if exists)
-        if: ${{ env.ACTION == 'labeled' }}
+      - name: Get Labels and Determine Branch Type
+        id: determine_branch_type
         run: |
-          OLD_BRANCH_PREFIX="${{ env.OLD_BRANCH_PREFIX }}"
-          REMOTE_BRANCH=$(git ls-remote --heads origin | grep "^refs/heads/$OLD_BRANCH_PREFIX" | awk '{print $2}' | sed 's|refs/heads/||')
+          ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
 
-          if [ -n "$REMOTE_BRANCH" ]; then
-            echo "Deleting branch: $REMOTE_BRANCH"
-            git push origin --delete "$REMOTE_BRANCH"
-          else
-            echo "No branch found for prefix: $OLD_BRANCH_PREFIX"
-          fi
+          # Get all labels from the issue
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository_owner }}/${{ github.repository_name }}/issues/$ISSUE_NUMBER/labels")
 
-      - name: Check if New Branch Exists
-        id: check_branch
-        if: ${{ env.ACTION == 'labeled' }}
-        run: |
-          NEW_BRANCH_NAME="${{ env.NEW_BRANCH_NAME }}"
-          if git ls-remote --heads origin "$NEW_BRANCH_NAME" | grep -q "$NEW_BRANCH_NAME"; then
-            echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
-          else
-            echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
-          fi
+          # Extract labels and store in array
+          LABELS=($(echo "$RESPONSE" | jq -r '.[].name'))
+
+          echo "Labels: ${LABELS[@]}"
+
+          # Determine branch type based on labels
+          BRANCH_TYPE="feature"  # Default to feature branch
+          for LABEL in "${LABELS[@]}"; do
+            if [[ "$LABEL" == "bug" ]]; then
+              BRANCH_TYPE="bugfix"
+              break
+            elif [[ "$LABEL" == "hotfix" ]]; then
+              BRANCH_TYPE="hotfix"
+              break
+            fi
+          done
+
+          echo "BRANCH_TYPE=$BRANCH_TYPE" >> $GITHUB_ENV
 
       - name: Create and Push New Branch
-        if: env.BRANCH_EXISTS == 'false' && env.ACTION == 'labeled'
+        if: ${{ env.ACTION == 'labeled' && env.BRANCH_TYPE != 'feature' }}
         run: |
-          git switch -c "${{ env.NEW_BRANCH_NAME }}"
-          git push origin "${{ env.NEW_BRANCH_NAME }}"
+          SANITIZED_TITLE="${{ env.SANITIZED_TITLE }}"
+          BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
+          ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
+
+          # Construct new branch name
+          NEW_BRANCH_NAME="$BRANCH_TYPE/${ISSUE_NUMBER}-${SANITIZED_TITLE}"
+          echo "Creating branch: $NEW_BRANCH_NAME"
+
+          # Check if branch exists
+          if git ls-remote --heads origin "$NEW_BRANCH_NAME"; then
+            echo "Branch already exists: $NEW_BRANCH_NAME"
+          else
+            git switch -c "$NEW_BRANCH_NAME"
+            git push origin "$NEW_BRANCH_NAME"
+          fi
+
+      - name: Delete Unnecessary Branches (if exists)
+        if: ${{ env.ACTION == 'labeled' }}
+        run: |
+          ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
+          BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
+
+          # Definir todas las posibilidades de ramas
+          BRANCH_TYPES=("feature" "bugfix" "hotfix")
+
+          # Recorrer las posibles ramas
+          for TYPE in "${BRANCH_TYPES[@]}"; do
+            BRANCH_NAME="${TYPE}/${ISSUE_NUMBER}-${SANITIZED_TITLE}"
+
+            # Si la rama no es del tipo actual (por ejemplo, si la issue está en "bugfix", no eliminamos "bugfix")
+            if [[ "$TYPE" != "$BRANCH_TYPE" ]]; then
+              # Comprobar si la rama existe en el repositorio remoto
+              REMOTE_BRANCH=$(git ls-remote --heads origin | grep "^refs/heads/$BRANCH_NAME" | awk '{print $2}' | sed 's|refs/heads/||')
+
+              if [ -n "$REMOTE_BRANCH" ]; then
+                echo "Deleting unnecessary branch: $BRANCH_NAME"
+                git push origin --delete "$BRANCH_NAME"
+              else
+                echo "No branch found to delete: $BRANCH_NAME"
+              fi
+            fi
+          done
+      
