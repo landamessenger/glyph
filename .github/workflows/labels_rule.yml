@@ -59,12 +59,11 @@ jobs:
         if: ${{ env.ACTION == 'labeled' }}
         run: |
           NEW_BRANCH_NAME="${NEW_BRANCH_NAME}"
-          BRANCH_EXISTS=$(git ls-remote --heads origin "$NEW_BRANCH_NAME" | wc -l)
-
-          if [[ "$BRANCH_EXISTS" -eq 0 ]]; then
-            echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
-          else
+          if git ls-remote --heads origin "$NEW_BRANCH_NAME" | grep -q "$NEW_BRANCH_NAME"; then
             echo "BRANCH_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "BRANCH_EXISTS=false" >> $GITHUB_ENV
+          fi
 
       - name: Create and Push New Branch
         if: ${{ steps.check_branch.outputs.BRANCH_EXISTS == 'false' }}
