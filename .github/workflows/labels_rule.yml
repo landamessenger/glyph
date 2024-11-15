@@ -4,12 +4,40 @@ on:
     types: [labeled, unlabeled]
 
 jobs:
-  create-or-delete-branch:
+  check_labels:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
+      - name: Get Issue Labels and Store in Array
+        id: get_labels
+        run: |
+          ISSUE_NUMBER="${{ github.event.issue.number }}"
+          REPO_OWNER="${{ github.repository_owner }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+          GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          
+          # Fetch the labels for the issue
+          RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/issues/$ISSUE_NUMBER/labels")
+          
+          # Extract label names and store them in an array
+          LABELS=($(echo "$RESPONSE" | jq -r '.[].name'))
+          
+          # Display the labels
+          echo "Labels: ${LABELS[@]}"
+          
+          # Store labels as an environment variable for use in later steps
+          echo "labels=${LABELS[@]}" >> $GITHUB_ENV
+
+  create-or-delete-branch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Get Issue Details
         id: issue_details
@@ -34,7 +62,10 @@ jobs:
 
           # Quitar guiones al principio o al final
           SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed 's/^-//' | sed 's/-$//')
-
+          
+          echo "branch title $SANITIZED_TITLE"
+          echo "label $LABEL"
+          
           # Determinar los tipos de rama
           if [[ "$LABEL" == "bug" ]]; then
             BRANCH_TYPE="bugfix"
