@@ -76,7 +76,7 @@ jobs:
           echo "BRANCH_TYPE=$BRANCH_TYPE" >> $GITHUB_ENV
 
       - name: Create and Push New Branch
-        if: ${{ env.labels && 'in progress' in env.labels }}
+        if: ${{ env.labels && contains(env.labels, 'in progress') }}
         run: |
           SANITIZED_TITLE="${{ env.SANITIZED_TITLE }}"
           BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
@@ -95,7 +95,7 @@ jobs:
           fi
 
       - name: Delete Unnecessary Branches (if exists)
-        if: ${{ env.labels && 'in progress' in env.labels }}
+        if: ${{ env.labels && contains(env.labels, 'in progress') }}
         run: |
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
           BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
