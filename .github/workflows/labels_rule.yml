@@ -76,7 +76,6 @@ jobs:
           echo "BRANCH_TYPE=$BRANCH_TYPE" >> $GITHUB_ENV
 
       - name: Create and Push New Branch
-        if: ${{ env.ACTION == 'labeled' && env.BRANCH_TYPE != 'feature' }}
         run: |
           SANITIZED_TITLE="${{ env.SANITIZED_TITLE }}"
           BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
@@ -87,7 +86,7 @@ jobs:
           echo "Creating branch: $NEW_BRANCH_NAME"
 
           # Check if branch exists
-          if git ls-remote --heads origin "$NEW_BRANCH_NAME"; then
+          if git branch -r | grep "origin/$NEW_BRANCH_NAME"; then
             echo "Branch already exists: $NEW_BRANCH_NAME"
           else
             git switch -c "$NEW_BRANCH_NAME"
