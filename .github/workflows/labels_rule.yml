@@ -16,12 +16,14 @@ jobs:
         run: |
           echo "ISSUE_TITLE=${{ github.event.issue.title }}" >> $GITHUB_ENV
           echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
+          echo "LABELG=${{ github.event.label.name }}" >> $GITHUB_ENV
           echo "ACTION=${{ github.event.action }}" >> $GITHUB_ENV
 
           ISSUE_TITLE="${{ env.ISSUE_TITLE }}"
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
+          LABELG="${{ env.LABELG }}"
 
-          # Sanitizar el título
+          # Sanitizar el título: eliminar caracteres no alfanuméricos y reemplazar los espacios con guiones
           SANITIZED_TITLE=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9 ]//g' | sed 's/ /-/g')
 
           # Asegurarse de que el número de la issue no se repita en el título
@@ -32,8 +34,9 @@ jobs:
 
           # Quitar guiones al principio o al final
           SANITIZED_TITLE=$(echo "$SANITIZED_TITLE" | sed 's/^-//' | sed 's/-$//')
-
-          echo "branch title: $SANITIZED_TITLE"
+          
+          echo "branch title $SANITIZED_TITLE"
+          echo "label $LABELG"
           
           echo "SANITIZED_TITLE=$SANITIZED_TITLE" >> $GITHUB_ENV
 
