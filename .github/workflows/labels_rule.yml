@@ -40,17 +40,23 @@ jobs:
         run: |
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
 
-          # Get all labels from the issue
+          # Obtener todas las etiquetas de la issue
           RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository_owner }}/${{ github.repository_name }}/issues/$ISSUE_NUMBER/labels")
 
-          # Extract labels and store in array
+          # Verificar que la respuesta no esté vacía
+          if [[ -z "$RESPONSE" ]]; then
+            echo "No labels found."
+            exit 1
+          fi
+
+          # Extraer las etiquetas y almacenarlas en un array
           LABELS=($(echo "$RESPONSE" | jq -r '.[].name'))
 
           echo "Labels: ${LABELS[@]}"
 
-          # Determine branch type based on labels
-          BRANCH_TYPE="feature"  # Default to feature branch
+          # Determinar el tipo de rama según las etiquetas
+          BRANCH_TYPE="feature"  # Por defecto, tipo de rama "feature"
           for LABEL in "${LABELS[@]}"; do
             if [[ "$LABEL" == "bug" ]]; then
               BRANCH_TYPE="bugfix"
