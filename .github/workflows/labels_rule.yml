@@ -136,7 +136,7 @@ jobs:
       
             // Query para obtener los IDs necesarios y el OID de la rama
             const { repository } = await github.graphql(`
-              query($repo: String!, $owner: String!, $issueNumber: Int!, $branchName: String!) {
+              query($repo: String!, $owner: String!, $issueNumber: Int!) {
                 repository(name: $repo, owner: $owner) {
                   id
                   issue(number: $issueNumber) {
@@ -154,8 +154,7 @@ jobs:
             `, {
               repo: context.repo.repo,
               owner: context.repo.owner,
-              issueNumber: parseInt(issueNumber, 10),
-              branchName: newBranchName,
+              issueNumber: parseInt(issueNumber, 10)
             });
       
             const repositoryId = repository.id;
@@ -189,6 +188,7 @@ jobs:
             });
       
             console.log(`Branch successfully linked to issue: ${result.createLinkedBranch.linkedBranch.ref.name}`);
+
 
       - name: Comment on Issue with Branch Link
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
