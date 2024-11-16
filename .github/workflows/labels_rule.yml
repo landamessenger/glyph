@@ -141,7 +141,7 @@ jobs:
               }
             `, {
               issueId: issueId,
-              name: `refs/heads/${newBranchName}`,
+              name: `/${newBranchName}`,
               repositoryId: repositoryId,
               oid: branchOid,
             });
