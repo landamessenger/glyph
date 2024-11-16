@@ -133,7 +133,7 @@ jobs:
             const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
             const branchType = '${{ env.BRANCH_TYPE }}';
             const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
-      
+            
             // Query para obtener los IDs necesarios y el OID de la rama
             const { repository } = await github.graphql(`
               query($repo: String!, $owner: String!, $issueNumber: Int!) {
@@ -156,21 +156,25 @@ jobs:
               owner: context.repo.owner,
               issueNumber: parseInt(issueNumber, 10)
             });
-      
+            
             const repositoryId = repository.id;
             const issueId = repository.issue.id;
             const branchOid = repository.ref.target.oid;
-      
+            
             console.log(`Linking branch "${newBranchName}" (oid: ${branchOid}) to issue #${issueNumber}`);
-      
+            
+            // Generar un ID único para clientMutationId (usando la fecha actual o un UUID)
+            const clientMutationId = new Date().toISOString(); // O usa cualquier otra forma dinámica, como UUID
+            
             // Ejecutar la mutación para vincular la rama
             const result = await github.graphql(`
-              mutation($issueId: ID!, $name: String!, $repositoryId: ID!, $oid: GitObjectID!) {
+              mutation($issueId: ID!, $name: String!, $repositoryId: ID!, $oid: GitObjectID!, $clientMutationId: String) {
                 createLinkedBranch(input: {
                   issueId: $issueId,
                   name: $name,
                   repositoryId: $repositoryId,
-                  oid: $oid
+                  oid: $oid,
+                  clientMutationId: $clientMutationId
                 }) {
                   linkedBranch {
                     id
@@ -184,11 +188,12 @@ jobs:
               issueId: issueId,
               name: newBranchName,
               repositoryId: repositoryId,
-              oid: branchOid
+              oid: branchOid,
+              clientMutationId: clientMutationId
             });
-      
+            
             console.log(`Branch successfully linked to issue: ${JSON.stringify(result.createLinkedBranch)}`);
-
+    
 
       - name: Comment on Issue with Branch Link
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
