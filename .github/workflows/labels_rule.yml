@@ -142,30 +142,34 @@ jobs:
 
               // Si la rama no es del tipo actual, no eliminamos la rama
               if (type !== branchType) {
+                const ref = `heads/${branchName}`;
+
+                console.log(`Checking branch: ${branchName}`);
                 try {
-                  // Obtener la lista de ramas del repositorio
-                  const { data: branches } = await github.rest.repos.listBranches({
+                  // Verificar si la referencia existe
+                  const { data } = await github.rest.git.getRef({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
+                    ref,
                   });
-
-                  // Comprobar si la rama existe en la lista de ramas
-                  const branchExists = branches.some(branch => branch.name === branchName);
-
-                  if (branchExists) {
-                    // Si la rama existe, eliminarla
-                    await github.rest.git.deleteRef({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      ref: `refs/heads/${branchName}`,
-                    });
-                    console.log(`Deleting unnecessary branch: ${branchName}`);
-                  } else {
-                    console.log(`No branch found to delete: ${branchName}`);
-                  }
+  
+                  console.log(`Branch found: ${data.ref}`);
+  
+                  // Eliminar la rama si existe
+                  await github.rest.git.deleteRef({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref,
+                  });
+  
+                  console.log(`Successfully deleted branch: ${branchName}`);
                 } catch (error) {
-                  console.error(`Error processing branch ${branchName}: ${error.message}`);
-                  throw error;
+                  if (error.status === 404) {
+                    console.log(`Branch does not exist: ${branchName}`);
+                  } else {
+                    console.error(`Error processing branch ${branchName}: ${error.message}`);
+                    throw error;
+                  }
                 }
               }
             }
@@ -187,30 +191,33 @@ jobs:
             for (const type of branchTypes) {
               const branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
 
+              const ref = `heads/${branchName}`;
+
+              console.log(`Checking branch: ${branchName}`);
               try {
-                // Obtener la lista de ramas del repositorio
-                const { data: branches } = await github.rest.repos.listBranches({
+                // Verificar si la referencia existe
+                const { data } = await github.rest.git.getRef({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
+                  ref,
                 });
-
-                // Comprobar si la rama existe
-                const branchExists = branches.some(branch => branch.name === branchName);
-
-                if (branchExists) {
-                  // Si la rama existe, eliminarla
-                  await github.rest.git.deleteRef({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    ref: `refs/heads/${branchName}`,
-                  });
-                  console.log(`Deleting unnecessary branch: ${branchName}`);
-                } else {
-                  console.log(`No branch found to delete: ${branchName}`);
-                }
+          
+                console.log(`Branch found: ${data.ref}`);
+          
+                // Eliminar la rama si existe
+                await github.rest.git.deleteRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref,
+                });
+          
+                console.log(`Successfully deleted branch: ${branchName}`);
               } catch (error) {
-                // Manejo de errores
-                console.error(`Error processing branch ${branchName}: ${error.message}`);
-                throw error;
+                if (error.status === 404) {
+                  console.log(`Branch does not exist: ${branchName}`);
+                } else {
+                  console.error(`Error processing branch ${branchName}: ${error.message}`);
+                  throw error;
+                }
               }
             }
