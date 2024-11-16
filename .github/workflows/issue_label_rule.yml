@@ -19,6 +19,24 @@ jobs:
         run: |
           git fetch --all
 
+      - name: Check Issue Title Format
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueNumber = context.payload.issue.number;
+            const issueTitle = context.payload.issue.title;
+
+            const titlePattern = new RegExp(`^\\d+\\s*-\\s*`);
+            if (!titlePattern.test(issueTitle)) {
+              const formattedTitle = `${issueNumber} - ${issueTitle}`;
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                title: formattedTitle
+              });
+            }
+
       - name: Get Issue Details
         id: issue_details
         run: |
