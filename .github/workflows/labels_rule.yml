@@ -79,50 +79,6 @@ jobs:
 
           echo "BRANCH_TYPE=$BRANCH_TYPE" >> $GITHUB_ENV
 
-      - name: Create and Push New Branch
-        if: ${{ env.labels && contains(env.labels, 'in progress') }}
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
-            const branchType = '${{ env.BRANCH_TYPE }}';
-            const issueNumber = '${{ env.ISSUE_NUMBER }}';
-
-            // Construir el nombre de la nueva rama
-            const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
-            console.log(`Creating branch: ${newBranchName}`);
-
-            try {
-              // Obtener la lista de ramas del repositorio
-              const { data: branches } = await github.rest.repos.listBranches({
-                owner: context.repo.owner,
-                repo: context.repo.repo
-              });
-
-              // Comprobar si la rama ya existe
-              const branchExists = branches.some(branch => branch.name === newBranchName);
-
-              if (!branchExists) {
-                console.log(`Branch does not exist, creating: ${newBranchName}`);
-
-                // Crear la rama utilizando la sha del commit actual
-                await github.rest.git.createRef({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  ref: `refs/heads/${newBranchName}`,
-                  sha: context.sha, // Usar la sha del commit actual
-                });
-
-                console.log(`Branch created successfully: ${newBranchName}`);
-              } else {
-                console.log(`Branch already exists: ${newBranchName}`);
-              }
-            } catch (error) {
-              console.error(`Error creating branch: ${error.message}`);
-              throw error;
-            }
-
       - name: Link Branch to Issue in Development Section
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
         uses: actions/github-script@v7
@@ -142,7 +98,7 @@ jobs:
                   issue(number: $issueNumber) {
                     id
                   }
-                  ref(qualifiedName: "refs/heads/${newBranchName}") {
+                  ref(qualifiedName: "refs/heads/master") {
                     target {
                       ... on Commit {
                         oid
@@ -185,7 +141,7 @@ jobs:
               }
             `, {
               issueId: issueId,
-              name: `refs/heads/${newBranchName}`,
+              name: `/${newBranchName}`,
               repositoryId: repositoryId,
               oid: branchOid,
             });
