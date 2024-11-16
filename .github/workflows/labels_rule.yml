@@ -90,10 +90,6 @@ jobs:
             const branchType = '${{ env.BRANCH_TYPE }}';
             const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
             
-            const issueNumber = '${{ env.ISSUE_NUMBER }}';
-            const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
-            const branchType = '${{ env.BRANCH_TYPE }}';
-
             // Definir todas las posibilidades de ramas
             const branchTypes = ["feature", "bugfix", "hotfix"];
 
