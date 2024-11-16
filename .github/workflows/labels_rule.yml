@@ -11,6 +11,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Fetch all remote branches
+        run: |
+          git fetch --all
+
       - name: Get Issue Details
         id: issue_details
         run: |
@@ -87,11 +91,14 @@ jobs:
           echo "Creating branch: $NEW_BRANCH_NAME"
 
           # Check if branch exists
-          if git branch -r | grep "origin/$NEW_BRANCH_NAME"; then
-            echo "Branch already exists: $NEW_BRANCH_NAME"
-          else
+          BRANCH_EXISTS=$(git branch -r | grep "origin/$NEW_BRANCH_NAME")
+
+          if [ -z "$BRANCH_EXISTS" ]; then
+            echo "Branch does not exist, creating: $NEW_BRANCH_NAME"
             git switch -c "$NEW_BRANCH_NAME"
             git push origin "$NEW_BRANCH_NAME"
+          else
+            echo "Branch already exists: $NEW_BRANCH_NAME"
           fi
 
       - name: Delete Unnecessary Branches (if exists)
@@ -110,11 +117,13 @@ jobs:
             # Si la rama no es del tipo actual (por ejemplo, si la issue está en "bugfix", no eliminamos "bugfix")
             if [[ "$TYPE" != "$BRANCH_TYPE" ]]; then
               # Comprobar si la rama existe en el repositorio remoto
-              if git branch -r | grep "origin/$BRANCH_NAME"; then
+              BRANCH_EXISTS=$(git branch -r | grep "origin/$BRANCH_NAME")
+      
+              if [ -z "$BRANCH_EXISTS" ]; then
+                echo "No branch found to delete: $BRANCH_NAME"
+              else
                 echo "Deleting unnecessary branch: $BRANCH_NAME"
                 git push origin --delete "$BRANCH_NAME"
-              else
-                echo "No branch found to delete: $BRANCH_NAME"
               fi
             fi
           done
@@ -133,11 +142,13 @@ jobs:
             BRANCH_NAME="${TYPE}/${ISSUE_NUMBER}-${SANITIZED_TITLE}"
 
             # Comprobar si la rama existe en el repositorio remoto
-            if git branch -r | grep "origin/$BRANCH_NAME"; then
+            BRANCH_EXISTS=$(git branch -r | grep "origin/$BRANCH_NAME")
+      
+            if [ -z "$BRANCH_EXISTS" ]; then
+              echo "No branch found to delete: $BRANCH_NAME"
+            else
               echo "Deleting unnecessary branch: $BRANCH_NAME"
               git push origin --delete "$BRANCH_NAME"
-            else
-              echo "No branch found to delete: $BRANCH_NAME"
             fi
           done
       
