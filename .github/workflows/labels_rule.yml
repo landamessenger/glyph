@@ -192,7 +192,8 @@ jobs:
               clientMutationId: clientMutationId
             });
             
-            console.log(`Branch successfully linked to issue: ${JSON.stringify(result.createLinkedBranch)}`);
+            console.log(`Branch successfully linked to issue: ${JSON.stringify(result)}`);
+            console.log(`Branch successfully linked to issue (createLinkedBranch): ${JSON.stringify(result.createLinkedBranch)}`);
     
 
       - name: Comment on Issue with Branch Link
