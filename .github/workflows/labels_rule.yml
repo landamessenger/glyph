@@ -90,6 +90,50 @@ jobs:
             const branchType = '${{ env.BRANCH_TYPE }}';
             const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
             
+            const issueNumber = '${{ env.ISSUE_NUMBER }}';
+            const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
+            const branchType = '${{ env.BRANCH_TYPE }}';
+
+            // Definir todas las posibilidades de ramas
+            const branchTypes = ["feature", "bugfix", "hotfix"];
+
+            let branchName = ''
+
+            for (const type of branchTypes) {
+              branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
+
+              if (type !== branchType) {
+                const ref = `heads/${branchName}`;
+
+                console.log(`Checking branch: ${branchName}`);
+                try {
+                  // Verificar si la referencia existe
+                  const { data } = await github.rest.git.getRef({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref,
+                  });
+            
+                  console.log(`Branch found: ${data.ref}`);
+                  
+                  if (data.ref !== undefined && data.ref.length > 0) {
+                    console.log(`Successfully found base branch: ${branchName}`);
+                    break
+                  } else {
+                    branchName = ''
+                  }
+                } catch (error) {
+                  branchName = ''
+                }
+              }
+            }
+            
+            if (branchName.length <= 0) {
+              branchName = 'master'
+            }
+            
+            console.log(`Base branch: ${branchName}`);
+
             // Query para obtener los IDs necesarios y el OID de la rama
             const { repository } = await github.graphql(`
               query($repo: String!, $owner: String!, $issueNumber: Int!) {
@@ -98,7 +142,7 @@ jobs:
                   issue(number: $issueNumber) {
                     id
                   }
-                  ref(qualifiedName: "refs/heads/master") {
+                  ref(qualifiedName: "refs/heads/${branchName}") {
                     target {
                       ... on Commit {
                         oid
@@ -146,9 +190,7 @@ jobs:
               oid: branchOid,
             });
             
-            console.log(`Branch successfully linked to issue: ${JSON.stringify(result)}`);
-            console.log(`Branch successfully linked to issue (createLinkedBranch): ${JSON.stringify(result.createLinkedBranch)}`);
-    
+            console.log(`Branch successfully linked to issue: ${JSON.stringify(result)}`);    
 
       - name: Comment on Issue with Branch Link
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
