@@ -134,13 +134,20 @@ jobs:
             const branchType = '${{ env.BRANCH_TYPE }}';
             const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
 
-            // Query para obtener los IDs necesarios
+            // Query para obtener los IDs necesarios y el OID de la rama
             const { repository } = await github.graphql(`
-              query($repo: String!, $owner: String!, $issueNumber: Int!) {
+              query($repo: String!, $owner: String!, $issueNumber: Int!, $branchName: String!) {
                 repository(name: $repo, owner: $owner) {
                   id
                   issue(number: $issueNumber) {
                     id
+                  }
+                  ref(qualifiedName: "refs/heads/${branchName}") {
+                    target {
+                      ... on Commit {
+                        oid
+                      }
+                    }
                   }
                 }
               }
@@ -148,12 +155,13 @@ jobs:
               repo: context.repo.repo,
               owner: context.repo.owner,
               issueNumber: parseInt(issueNumber, 10),
+              branchName: newBranchName,
             });
 
             const repositoryId = repository.id;
             const issueId = repository.issue.id;
             const branchOid = repository.ref.target.oid;
-          
+
             console.log(`Linking branch "${newBranchName}" (oid: ${branchOid}) to issue #${issueNumber}`);
 
             // Ejecutar la mutación para vincular la rama
