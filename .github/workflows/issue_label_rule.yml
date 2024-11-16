@@ -1,7 +1,7 @@
 name: Manage Branch on Label Change
 on:
   issues:
-    types: [labeled, unlabeled]
+    types: [opened, edited, labeled, unlabeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fetch all remote branches
         run: |
