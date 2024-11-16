@@ -187,7 +187,7 @@ jobs:
               oid: branchOid
             });
       
-            console.log(`Branch successfully linked to issue: ${result.createLinkedBranch.linkedBranch.ref.name}`);
+            console.log(`Branch successfully linked to issue: ${result.createLinkedBranch}`);
 
 
       - name: Comment on Issue with Branch Link
