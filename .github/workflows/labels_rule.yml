@@ -135,7 +135,7 @@ jobs:
             const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
 
             // Query para obtener los IDs necesarios
-            const { repository } = await github.graphql('
+            const { repository } = await github.graphql(`
               query($repo: String!, $owner: String!, $issueNumber: Int!) {
                 repository(name: $repo, owner: $owner) {
                   id
@@ -143,7 +143,8 @@ jobs:
                     id
                   }
                 }
-              }', {
+              }
+            `, {
               repo: context.repo.repo,
               owner: context.repo.owner,
               issueNumber: parseInt(issueNumber, 10),
