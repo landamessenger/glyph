@@ -98,7 +98,7 @@ jobs:
                   issue(number: $issueNumber) {
                     id
                   }
-                  ref(qualifiedName: "refs/heads/${newBranchName}") {
+                  ref(qualifiedName: "refs/heads/master") {
                     target {
                       ... on Commit {
                         oid
