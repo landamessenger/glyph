@@ -135,7 +135,7 @@ jobs:
             const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
 
             // Query para obtener los IDs necesarios
-            const { repository } = await github.graphql(`
+            const { repository } = await github.graphql('
               query($repo: String!, $owner: String!, $issueNumber: Int!) {
                 repository(name: $repo, owner: $owner) {
                   id
@@ -143,8 +143,7 @@ jobs:
                     id
                   }
                 }
-              }
-            `, {
+              }', {
               repo: context.repo.repo,
               owner: context.repo.owner,
               issueNumber: parseInt(issueNumber, 10),
@@ -160,7 +159,24 @@ jobs:
               mutation($issueId: ID!, $name: String!, $repositoryId: ID!) {
                 createLinkedBranch(input: {
                   issueId: $issueId,
-                  name: $
+                  name: $name,
+                  repositoryId: $repositoryId
+                }) {
+                  linkedBranch {
+                    id
+                    ref {
+                      name
+                    }
+                  }
+                }
+              }
+            `, {
+              issueId: issueId,
+              name: newBranchName,
+              repositoryId: repositoryId,
+            });
+
+            console.log(`Branch successfully linked to issue: ${result.createLinkedBranch.linkedBranch.ref.name}`);
 
       - name: Comment on Issue with Branch Link
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
