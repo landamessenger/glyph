@@ -124,13 +124,12 @@ jobs:
             
             // Ejecutar la mutación para vincular la rama
             const result = await github.graphql(`
-              mutation($issueId: ID!, $name: String!, $repositoryId: ID!, $oid: GitObjectID!, $clientMutationId: String) {
+              mutation($issueId: ID!, $name: String!, $repositoryId: ID!, $oid: GitObjectID!) {
                 createLinkedBranch(input: {
                   issueId: $issueId,
                   name: $name,
                   repositoryId: $repositoryId,
                   oid: $oid,
-                  clientMutationId: $clientMutationId
                 }) {
                   linkedBranch {
                     id
@@ -142,10 +141,9 @@ jobs:
               }
             `, {
               issueId: issueId,
-              name: newBranchName,
+              name: `refs/heads/${newBranchName}`,
               repositoryId: repositoryId,
               oid: branchOid,
-              clientMutationId: clientMutationId
             });
             
             console.log(`Branch successfully linked to issue: ${JSON.stringify(result)}`);
