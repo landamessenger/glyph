@@ -97,44 +97,34 @@ jobs:
             // Definir todas las posibilidades de ramas
             const branchTypes = ["feature", "bugfix", "hotfix"];
 
-            let branchName = ''
-
-            for (const type of branchTypes) {
-              branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
-
-              if (type !== branchType) {
-                const ref = `heads/${branchName}`;
-
-                console.log(`Checking branch: ${branchName}`);
-                try {
-                  // Verificar si la referencia existe
-                  const { data } = await github.rest.git.getRef({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    ref,
-                  });
+            let baseBranchName = 'master';
+  
+            console.log(`Searching for branches related to issue #${issueNumber}...`);
             
-                  console.log(`Branch found: ${data.ref}`);
-                  
-                  if (data.ref !== undefined && data.ref.length > 0) {
-                    console.log(`Successfully found base branch: ${branchName}`);
-                    break
-                  } else {
-                    branchName = ''
-                  }
-                } catch (error) {
-                  branchName = ''
+            const { data } = await github.rest.repos.listBranches({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            
+            for (const type of branchTypes) {
+              const prefix = `${type}/${issueNumber}-`;
+            
+              try {
+                const matchingBranch = data.find(branch => branch.name.indexOf(prefix) > -1);
+                
+                if (matchingBranch) {
+                  baseBranchName = matchingBranch.name;
+                  console.log(`Found branch: ${baseBranchName}`);
+                  break;
                 }
+              } catch (error) {
+                console.error(`Error while listing branches: ${error.message}`);
+                throw error;
               }
             }
             
-            if (branchName.length <= 0) {
-              branchName = 'master'
-            }
-            
-            console.log(`Base branch: ${branchName}`);
+            console.log(`Base branch: ${baseBranchName}`);
 
-            // Query para obtener los IDs necesarios y el OID de la rama
             const { repository } = await github.graphql(`
               query($repo: String!, $owner: String!, $issueNumber: Int!) {
                 repository(name: $repo, owner: $owner) {
@@ -142,7 +132,7 @@ jobs:
                   issue(number: $issueNumber) {
                     id
                   }
-                  ref(qualifiedName: "refs/heads/${branchName}") {
+                  ref(qualifiedName: "refs/heads/${baseBranchName}") {
                     target {
                       ... on Commit {
                         oid
