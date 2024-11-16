@@ -94,26 +94,26 @@ jobs:
             console.log(`Creating branch: ${newBranchName}`);
 
             try {
-              // Comprobar si la rama existe
-              const { data: refs } = await github.git.listMatchingRefs({
+              // Obtener la lista de ramas del repositorio
+              const { data: branches } = await github.rest.repos.listBranches({
                 owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: `refs/heads/${newBranchName}`,
+                repo: context.repo.repo
               });
 
-              // Si la rama no existe, crearla y empujarla
-              if (refs.length === 0) {
+              // Comprobar si la rama ya existe
+              const branchExists = branches.some(branch => branch.name === newBranchName);
+
+              if (!branchExists) {
                 console.log(`Branch does not exist, creating: ${newBranchName}`);
 
-                // Crear la rama usando la API de GitHub
-                const { data: newRef } = await github.git.createRef({
+                // Crear la rama utilizando la sha del commit actual
+                await github.rest.git.createRef({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   ref: `refs/heads/${newBranchName}`,
                   sha: context.sha, // Usar la sha del commit actual
                 });
 
-                // Empujar la rama creada (esto ya lo hace GitHub automáticamente al crearla)
                 console.log(`Branch created successfully: ${newBranchName}`);
               } else {
                 console.log(`Branch already exists: ${newBranchName}`);
