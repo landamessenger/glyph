@@ -122,6 +122,45 @@ jobs:
               console.error(`Error creating branch: ${error.message}`);
               throw error;
             }
+            
+      - name: Link Branch to Issue in Development Section
+        if: ${{ env.labels && contains(env.labels, 'in progress') }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = '${{ env.ISSUE_NUMBER }}';
+            const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
+            const branchType = '${{ env.BRANCH_TYPE }}';
+            const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
+
+            // Query para obtener los IDs necesarios
+            const { repository } = await github.graphql(`
+              query($repo: String!, $owner: String!, $issueNumber: Int!) {
+                repository(name: $repo, owner: $owner) {
+                  id
+                  issue(number: $issueNumber) {
+                    id
+                  }
+                }
+              }
+            `, {
+              repo: context.repo.repo,
+              owner: context.repo.owner,
+              issueNumber: parseInt(issueNumber, 10),
+            });
+
+            const repositoryId = repository.id;
+            const issueId = repository.issue.id;
+
+            console.log(`Linking branch "${newBranchName}" to issue #${issueNumber}`);
+
+            // Ejecutar la mutación para vincular la rama
+            const result = await github.graphql(`
+              mutation($issueId: ID!, $name: String!, $repositoryId: ID!) {
+                createLinkedBranch(input: {
+                  issueId: $issueId,
+                  name: $
 
       - name: Comment on Issue with Branch Link
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
@@ -146,30 +185,6 @@ jobs:
             });
 
             console.log(`Commented on issue #${issueNumber} with branch link: ${repoUrl}`);
-
-      - name: Link Branch to Issue in Development Section
-        if: ${{ env.labels && contains(env.labels, 'in progress') }}
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issueNumber = '${{ env.ISSUE_NUMBER }}';
-            const branchType = '${{ env.BRANCH_TYPE }}';
-            const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
-            const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
-            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${newBranchName}`;
-
-            console.log(`Linking branch "${newBranchName}" to issue #${issueNumber}`);
-
-            // Vincular la rama en la sección Development
-            await github.rest.issues.addAssignees({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              assignees: [`refs/heads/${newBranchName}`], // Esto establece la referencia de la rama en GitHub
-            });
-
-            console.log(`Branch "${newBranchName}" linked successfully.`);
 
       - name: Delete Unnecessary Branches (if exists)
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
