@@ -104,6 +104,8 @@ jobs:
       - name: Delete Unnecessary Branches (if exists)
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
         run: |
+          git fetch --all -v
+          
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
           BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
 
@@ -123,7 +125,7 @@ jobs:
                 echo "No branch found to delete: $BRANCH_NAME"
               else
                 echo "Deleting unnecessary branch: $BRANCH_NAME"
-                git push origin --delete "$BRANCH_NAME" 2>/dev/null
+                git push origin --delete "$BRANCH_NAME"
               fi
             fi
           done
@@ -131,6 +133,8 @@ jobs:
       - name: Delete All Branches (if exists)
         if: ${{ env.labels && !contains(env.labels, 'in progress') }}
         run: |
+          git fetch --all -v
+
           ISSUE_NUMBER="${{ env.ISSUE_NUMBER }}"
           BRANCH_TYPE="${{ env.BRANCH_TYPE }}"
 
@@ -148,7 +152,7 @@ jobs:
               echo "No branch found to delete: $BRANCH_NAME"
             else
               echo "Deleting unnecessary branch: $BRANCH_NAME"
-              git push origin --delete "$BRANCH_NAME" 2>/dev/null
+              git push origin --delete "$BRANCH_NAME"
             fi
           done
       
