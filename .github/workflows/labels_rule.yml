@@ -143,28 +143,29 @@ jobs:
               // Si la rama no es del tipo actual, no eliminamos la rama
               if (type !== branchType) {
                 try {
-                  // Comprobar si la rama existe en el repositorio remoto
-                  await github.git.getRef({
+                  // Obtener la lista de ramas del repositorio
+                  const { data: branches } = await github.rest.repos.listBranches({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
-                    ref: `refs/heads/${branchName}`,
                   });
 
-                  // Si la rama existe, eliminarla
-                  await github.git.deleteRef({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    ref: `refs/heads/${branchName}`,
-                  });
+                  // Comprobar si la rama existe en la lista de ramas
+                  const branchExists = branches.some(branch => branch.name === branchName);
 
-                  console.log(`Deleting unnecessary branch: ${branchName}`);
-                } catch (error) {
-                  // Si la rama no existe, se captura el error y se imprime un mensaje
-                  if (error.status === 404) {
-                    console.log(`No branch found to delete: ${branchName}`);
+                  if (branchExists) {
+                    // Si la rama existe, eliminarla
+                    await github.rest.git.deleteRef({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: `refs/heads/${branchName}`,
+                    });
+                    console.log(`Deleting unnecessary branch: ${branchName}`);
                   } else {
-                    throw error; // Re-throw if it's a different error
+                    console.log(`No branch found to delete: ${branchName}`);
                   }
+                } catch (error) {
+                  console.error(`Error processing branch ${branchName}: ${error.message}`);
+                  throw error;
                 }
               }
             }
@@ -178,36 +179,38 @@ jobs:
             const issueNumber = '${{ env.ISSUE_NUMBER }}';
             const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
             const branchType = '${{ env.BRANCH_TYPE }}';
-            
+
             // Definir todas las posibilidades de ramas
             const branchTypes = ["feature", "bugfix", "hotfix"];
-            
+
             // Recorrer las posibles ramas
             for (const type of branchTypes) {
               const branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
-            
+
               try {
-                // Comprobar si la rama existe en el repositorio remoto
-                await github.git.getRef({
+                // Obtener la lista de ramas del repositorio
+                const { data: branches } = await github.rest.repos.listBranches({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  ref: `refs/heads/${branchName}`,
                 });
-            
-                // Si la rama existe, eliminarla
-                await github.git.deleteRef({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  ref: `refs/heads/${branchName}`,
-                });
-            
-                console.log(`Deleting unnecessary branch: ${branchName}`);
-              } catch (error) {
-                // Si la rama no existe, se captura el error y se imprime un mensaje
-                if (error.status === 404) {
-                  console.log(`No branch found to delete: ${branchName}`);
+
+                // Comprobar si la rama existe
+                const branchExists = branches.some(branch => branch.name === branchName);
+
+                if (branchExists) {
+                  // Si la rama existe, eliminarla
+                  await github.rest.git.deleteRef({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: `refs/heads/${branchName}`,
+                  });
+                  console.log(`Deleting unnecessary branch: ${branchName}`);
                 } else {
-                  throw error; // Re-throw if it's a different error
+                  console.log(`No branch found to delete: ${branchName}`);
                 }
+              } catch (error) {
+                // Manejo de errores
+                console.error(`Error processing branch ${branchName}: ${error.message}`);
+                throw error;
               }
             }
