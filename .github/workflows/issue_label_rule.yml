@@ -94,7 +94,6 @@ jobs:
             const branchType = '${{ env.BRANCH_TYPE }}';
             const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
             
-            // Definir todas las posibilidades de ramas
             const branchTypes = ["feature", "bugfix", "hotfix"];
 
             let baseBranchName = 'master';
@@ -124,6 +123,17 @@ jobs:
             }
             
             console.log(`Base branch: ${baseBranchName}`);
+            
+            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${baseBranchName}`;
+            const newRepoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${newBranchName}`;
+            
+            const commentBody = `🔥 Creating [${newBranchName}](${newRepoUrl}) from [${baseBranchName}](${repoUrl}).`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: commentBody,
+            });
 
             const { repository } = await github.graphql(`
               query($repo: String!, $owner: String!, $issueNumber: Int!) {
@@ -194,7 +204,6 @@ jobs:
             const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
             const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${newBranchName}`;
 
-            // Crear un comentario en la incidencia con un enlace a la nueva rama
             const commentBody = `🚀 A new branch has been created for this issue: [${newBranchName}](${repoUrl}).`;
 
             await github.rest.issues.createComment({
@@ -216,20 +225,32 @@ jobs:
             const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
             const branchType = '${{ env.BRANCH_TYPE }}';
 
-            // Definir todas las posibilidades de ramas
             const branchTypes = ["feature", "bugfix", "hotfix"];
 
-            // Recorrer las posibles ramas
+            const { data } = await github.rest.repos.listBranches({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            
             for (const type of branchTypes) {
-              const branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
+              let branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
+              const prefix = `${type}/${issueNumber}-`;
 
-              // Si la rama no es del tipo actual, no eliminamos la rama
               if (type !== branchType) {
+            
+                const matchingBranch = data.find(branch => branch.name.indexOf(prefix) > -1);
+            
+                if (!matchingBranch) {
+                  continue;
+                }
+            
+                branchName = matchingBranch.name;
+                console.log(`Found branch: ${branchName}`);
+            
                 const ref = `heads/${branchName}`;
 
-                console.log(`Checking branch: ${branchName}`);
+                console.log(`Checking branch reference: ${branchName}`);
                 try {
-                  // Verificar si la referencia existe
                   const { data } = await github.rest.git.getRef({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -237,8 +258,16 @@ jobs:
                   });
   
                   console.log(`Branch found: ${data.ref}`);
+            
+                  const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${branchName}`;
+                  const commentBody = `🗑️ Removed branch: [${branchName}](${repoUrl}).`;
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: commentBody,
+                  });
   
-                  // Eliminar la rama si existe
                   await github.rest.git.deleteRef({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -267,18 +296,32 @@ jobs:
             const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
             const branchType = '${{ env.BRANCH_TYPE }}';
 
-            // Definir todas las posibilidades de ramas
             const branchTypes = ["feature", "bugfix", "hotfix"];
 
-            // Recorrer las posibles ramas
+            const { data } = await github.rest.repos.listBranches({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            
             for (const type of branchTypes) {
-              const branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
-
+              let branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
+              const prefix = `${type}/${issueNumber}-`;
+            
+              const matchingBranch = data.find(branch => branch.name.indexOf(prefix) > -1);
+          
+              if (!matchingBranch) {
+                continue;
+              }
+          
+              branchName = matchingBranch.name;
+              console.log(`Found branch: ${branchName}`);
+          
               const ref = `heads/${branchName}`;
+
+              console.log(`Checking branch reference: ${branchName}`);
 
               console.log(`Checking branch: ${branchName}`);
               try {
-                // Verificar si la referencia existe
                 const { data } = await github.rest.git.getRef({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -286,8 +329,16 @@ jobs:
                 });
           
                 console.log(`Branch found: ${data.ref}`);
+            
+                const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${branchName}`;
+                const commentBody = `🗑️ Removed branch: [${branchName}](${repoUrl}).`;
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: commentBody,
+                });
           
-                // Eliminar la rama si existe
                 await github.rest.git.deleteRef({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
