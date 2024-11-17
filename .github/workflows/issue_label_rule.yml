@@ -124,7 +124,7 @@ jobs:
         if: ${{ env.labels && contains(env.labels, 'in progress') && env.TAG_OID != '' && env.LATEST_TAG != '' && env.HOTFIX_TYPE == '1' }}
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.REPO_PAT }}
           script: |
             const issueNumber = '${{ env.ISSUE_NUMBER }}';
             const tag = '${{ env.LATEST_TAG }}';
