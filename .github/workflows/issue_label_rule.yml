@@ -112,9 +112,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const core = require('@actions/core'); 
-            
+          script: |            
             const tag = '${{ env.LATEST_TAG }}';
             console.log(`Tag: ${tag}`);
 
