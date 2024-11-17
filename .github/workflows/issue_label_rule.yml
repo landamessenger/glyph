@@ -33,7 +33,7 @@ jobs:
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
       - name: Get Latest SHA1 commit Tag
-        if: ${{ env.LATEST_TAG != '' && env.HOTFIX_TYPE == '1' }}
+        if: ${{ env.LATEST_TAG != '' }}
         id: get_latest_commit_tag
         run: |
           git fetch --all -v
@@ -180,6 +180,8 @@ jobs:
               issueNumber: parseInt(issueNumber, 10)
             });
 
+            console.log(`Repository information retrieved.`)
+            
             const repositoryId = repository.id;
             const issueId = repository.issue.id;
             const branchOid = '${{ env.TAG_OID }}';
