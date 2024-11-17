@@ -22,6 +22,8 @@ jobs:
       - name: Get Latest Tag or Default to Master
         id: get_latest_tag
         run: |
+          git fetch --all -v
+          
           # Get the latest tag (if any)
           LATEST_TAG=$(git tag --sort=-creatordate | head -n 1)
           
