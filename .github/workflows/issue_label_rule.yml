@@ -124,7 +124,7 @@ jobs:
           echo "BRANCH_TYPE=$BRANCH_TYPE" >> $GITHUB_ENV
 
       - name: Link Hotfix Branch to Issue in Development Section
-        if: ${{ env.labels && contains(env.labels, 'in progress') && env.LATEST_TAG != '' && env.HOTFIX_TYPE == '1' }}
+        if: ${{ env.LATEST_TAG != '' && env.HOTFIX_TYPE == '1' }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
