@@ -15,19 +15,23 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+      - name: Set development branch
+        run: |
+          echo "DEVELOPMENT_BRANCH=master" >> $GITHUB_ENV
+
       - name: Fetch all remote branches
         run: |
           git fetch --tags --force
           git fetch --all -v
 
-      - name: Get Latest Tag or Default to Master
+      - name: Get Latest Tag
         id: get_latest_tag
         run: |          
           LATEST_TAG=$(git tag --sort=-creatordate | head -n 1)
           echo "Latest tag: $LATEST_TAG"
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
-      - name: Get Latest Tag or Default to Master
+      - name: Get Tag Type
         id: get_tag_type
         run: |          
           TAG_TYPE=$(git cat-file -t ${{ env.LATEST_TAG }})
@@ -126,6 +130,7 @@ jobs:
         with:
           github-token: ${{ secrets.REPO_PAT }}
           script: |
+            const developmentBranch = '${{ env.DEVELOPMENT_BRANCH }}';
             const issueNumber = '${{ env.ISSUE_NUMBER }}';
             const tag = '${{ env.LATEST_TAG }}';
             console.log(`Tag: ${tag}`);
@@ -144,17 +149,6 @@ jobs:
             console.log(`Tag branch: ${baseBranchName}`);
             console.log(`Hotfix branch: ${newBranchName}`);
 
-            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${baseBranchName}`;
-            const newRepoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${newBranchName}`;
-
-            const commentBody = `🔥 Creating [${newBranchName}](${newRepoUrl}) from [${baseBranchName}](${repoUrl}).`;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: commentBody,
-            });
-
             const { repository } = await github.graphql(`
               query($repo: String!, $owner: String!, $issueNumber: Int!) {
                 repository(name: $repo, owner: $owner) {
@@ -162,7 +156,7 @@ jobs:
                   issue(number: $issueNumber) {
                     id
                   }
-                  ref(qualifiedName: "refs/heads/master") {
+                  ref(qualifiedName: "refs/heads/${developmentBranch}") {
                     target {
                       ... on Commit {
                         oid
@@ -214,8 +208,8 @@ jobs:
             } catch (error) {
               console.error(error);
             }
+            core.exportVariable('HOTFIX_VERSION', newVersion);
             core.exportVariable('HOTFIX_BRANCH', newBranchName);
-            console.log(`env var HOTFIX_BRANCH exported: ${newBranchName}`);
 
       - name: Link Branch to Issue in Development Section
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
@@ -223,6 +217,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const developmentBranch = '${{ env.DEVELOPMENT_BRANCH }}';
             const isHotfix = '${{ env.HOTFIX_TYPE }}' === '1';
             const hotfixBranch = '${{ env.HOTFIX_BRANCH }}';
             const issueNumber = '${{ env.ISSUE_NUMBER }}';
@@ -232,7 +227,7 @@ jobs:
             
             const branchTypes = ["feature", "bugfix"];
 
-            let baseBranchName = 'master';
+            let baseBranchName = developmentBranch;
   
             if (!isHotfix) {
               console.log(`Searching for branches related to issue #${issueNumber}...`);
@@ -263,17 +258,6 @@ jobs:
             }
             
             console.log(`Base branch: ${baseBranchName}`);
-            
-            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${baseBranchName}`;
-            const newRepoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${newBranchName}`;
-            
-            const commentBody = `🔥 Creating [${newBranchName}](${newRepoUrl}) from [${baseBranchName}](${repoUrl}).`;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: commentBody,
-            });
 
             const { repository } = await github.graphql(`
               query($repo: String!, $owner: String!, $issueNumber: Int!) {
@@ -328,30 +312,6 @@ jobs:
             
             console.log(`Branch successfully linked to issue: ${JSON.stringify(result)}`);    
 
-
-      - name: Comment on Issue with Branch Link
-        if: ${{ env.labels && contains(env.labels, 'in progress') }}
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issueNumber = '${{ env.ISSUE_NUMBER }}';
-            const branchType = '${{ env.BRANCH_TYPE }}';
-            const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
-            const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
-            const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${newBranchName}`;
-
-            const commentBody = `🚀 A new branch has been created for this issue: [${newBranchName}](${repoUrl}).`;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: commentBody,
-            });
-
-            console.log(`Commented on issue #${issueNumber} with branch link: ${repoUrl}`);
-
       - name: Delete Unnecessary Branches (if exists)
         if: ${{ env.labels && contains(env.labels, 'in progress') }}
         uses: actions/github-script@v7
@@ -369,6 +329,8 @@ jobs:
               repo: context.repo.repo,
             });
             
+            const deletedBranches = []
+
             for (const type of branchTypes) {
               let branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
               const prefix = `${type}/${issueNumber}-`;
@@ -395,22 +357,14 @@ jobs:
                   });
   
                   console.log(`Branch found: ${data.ref}`);
-            
-                  const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${branchName}`;
-                  const commentBody = `🗑️ Removed branch: [${branchName}](${repoUrl}).`;
-                  await github.rest.issues.createComment({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: issueNumber,
-                    body: commentBody,
-                  });
   
                   await github.rest.git.deleteRef({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     ref,
                   });
-  
+
+                  deletedBranches.push(branchName)
                   console.log(`Successfully deleted branch: ${branchName}`);
                 } catch (error) {
                   if (error.status === 404) {
@@ -422,6 +376,8 @@ jobs:
                 }
               }
             }
+            
+            core.exportVariable('DELETED_BRANCHES', JSON.stringify(deletedBranches));
 
       - name: Delete All Branches (if exists)
         if: ${{ !env.labels || (!contains(env.labels, 'in progress')) }}
@@ -439,6 +395,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
             });
+            
+            const deletedBranches = []
             
             for (const type of branchTypes) {
               let branchName = `${type}/${issueNumber}-${sanitizedTitle}`;
@@ -466,15 +424,6 @@ jobs:
                 });
           
                 console.log(`Branch found: ${data.ref}`);
-            
-                const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${branchName}`;
-                const commentBody = `🗑️ Removed branch: [${branchName}](${repoUrl}).`;
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issueNumber,
-                  body: commentBody,
-                });
           
                 await github.rest.git.deleteRef({
                   owner: context.repo.owner,
@@ -482,6 +431,7 @@ jobs:
                   ref,
                 });
           
+                deletedBranches.push(branchName)
                 console.log(`Successfully deleted branch: ${branchName}`);
               } catch (error) {
                 if (error.status === 404) {
@@ -492,3 +442,84 @@ jobs:
                 }
               }
             }
+            core.exportVariable('DELETED_BRANCHES', JSON.stringify(deletedBranches));
+
+      - name: Comment on Issue resume of hotfix actions
+        if: ${{ env.labels && contains(env.labels, 'in progress') && env.TAG_OID != '' && env.LATEST_TAG != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const deletedBranches = JSON.parse(`${{ env.DELETED_BRANCHES }}` || '[]');
+            const issueNumber = '${{ env.ISSUE_NUMBER }}';
+            const isHotfix = '${{ env.HOTFIX_TYPE }}' === '1';
+            const isBugfix = '${{ env.BRANCH_TYPE }}' === 'bugfix';
+            const isFeature = '${{ env.BRANCH_TYPE }}' === 'feature';
+            const tag = '${{ env.LATEST_TAG }}';
+            const tagBranch = `tags/${tag}`;
+            const tagUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${tagBranch}`;
+
+            let developmentBranch = '${{ env.DEVELOPMENT_BRANCH }}';
+            let developmentUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${developmentBranch}`;
+            
+            const hotfixBranch = '${{ env.HOTFIX_BRANCH }}';
+            const hotfixUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${hotfixBranch}`;
+            
+            const branchType = '${{ env.BRANCH_TYPE }}';
+            const sanitizedTitle = '${{ env.SANITIZED_TITLE }}';
+            
+            const newBranchName = `${branchType}/${issueNumber}-${sanitizedTitle}`;
+            const newRepoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${newBranchName}`;
+
+            let deletedBranchesMessage = ''
+            for (let i = 0; i < deletedBranches.length; i++) {
+              const branch = deletedBranches[i];
+              if (branch.indexOf('feature/') > -1 || branch.indexOf('bugfix/') > -1) {
+                developmentBranch = branch;
+                developmentUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${developmentBranch}`;
+              }
+            }
+            
+            let title = ''
+            let content = ''
+            let stepOn = 1
+            
+            if (isHotfix) {
+              title = '🔥🐛 Hotfix Actions'
+              content = `
+                1. The tag [${tagBranch}](${tagUrl}) was used to create the branch [${hotfixBranch}](${hotfixUrl}).
+                2. The branch [${hotfixBranch}](${hotfixUrl}) was used to create the branch [${newBranchName}](${newRepoUrl}).
+              `
+              stepOn = 2
+            } else if (isBugfix) {
+              title = '🐛 Bugfix Actions'
+              content = `
+                1. The branch [${developmentBranch}](${developmentUrl}) was used to create the branch [${newBranchName}](${newRepoUrl}).
+              `
+            } else if (isFeature) {
+              title = '🛠️ Feature Actions'
+              content = `
+                1. The branch [${developmentBranch}](${developmentUrl}) was used to create the branch [${newBranchName}](${newRepoUrl}).
+              `
+            }
+            
+            for (let i = 0; i < deletedBranches.length; i++) {
+              const branch = deletedBranches[i];
+              console.log(`Processing branch: ${branch}`);
+              deletedBranchesMessage+=`\n${stepOn + i + 1}. The branch ${branch} was removed.`
+            }
+            
+            const commentBody = `## ${title}:
+            ${content}
+            ${deletedBranchesMessage}
+            `;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: commentBody,
+            });
+
+            console.log(`Commented on issue #${issueNumber} with branch link: ${repoUrl}`);
+
