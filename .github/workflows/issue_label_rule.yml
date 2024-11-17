@@ -181,8 +181,8 @@ jobs:
             
             const repositoryId = repository.id;
             const issueId = repository.issue.id;
-            // const branchOid = '${{ env.TAG_OID }}';
-            const branchOid = repository.ref.target.oid;
+            const branchOid = '${{ env.TAG_OID }}';
+            // const branchOid = repository.ref.target.oid;
 
             console.log(`Linking branch "${newBranchName}" (oid: ${branchOid}) to issue #${issueNumber}`);
 
