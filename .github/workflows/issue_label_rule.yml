@@ -14,7 +14,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
       - name: Fetch all remote branches
         run: |
           git fetch --tags --force
@@ -22,26 +21,23 @@ jobs:
 
       - name: Get Latest Tag or Default to Master
         id: get_latest_tag
-        run: |
-          git fetch --all -v
-          
-          # Get the latest tag (if any)
+        run: |          
           LATEST_TAG=$(git tag --sort=-creatordate | head -n 1)
-          
-          # Output the result
           echo "Latest tag: $LATEST_TAG"
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+
+      - name: Get Latest Tag or Default to Master
+        id: get_tag_type
+        run: |          
+          TAG_TYPE=$(git cat-file -t ${{ env.LATEST_TAG }})
+          echo "Tag type: $TAG_TYPE"
+          echo "TAG_TYPE=$TAG_TYPE" >> $GITHUB_ENV
 
       - name: Get Latest SHA1 commit Tag
         if: ${{ env.LATEST_TAG != '' }}
         id: get_latest_commit_tag
-        run: |
-          git fetch --all -v
-          
-          # Get the latest tag (if any)
+        run: |          
           TAG_OID=$(git rev-list -n 1 ${{ env.LATEST_TAG }})
-          
-          # Output the result
           echo "Commit tag: $TAG_OID"
           echo "TAG_OID=$TAG_OID" >> $GITHUB_ENV
 
@@ -180,7 +176,7 @@ jobs:
               issueNumber: parseInt(issueNumber, 10)
             });
 
-            console.log(`Repository information retrieved.`)
+            console.log(`Repository information retrieved: ${JSON.stringify(repository.ref)}`)
             
             const repositoryId = repository.id;
             const issueId = repository.issue.id;
