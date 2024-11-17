@@ -447,7 +447,7 @@ jobs:
             for (let i = 0; i < deletedBranches.length; i++) {
               const branch = deletedBranches[i];
               console.log(`Processing branch: ${branch}`);
-              deletedBranchesMessage+=`\n${stepOn + i + 1}. The branch \`${branch}\` was removed.`
+              deletedBranchesMessage+=`\n${i + 1}. The branch \`${branch}\` was removed.`
             }
             
             const commentBody = `## 🗑️ Cleanup Actions:
