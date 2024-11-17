@@ -32,6 +32,19 @@ jobs:
           echo "Latest tag: $LATEST_TAG"
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
+      - name: Get Latest SHA1 commit Tag
+        if: ${{ env.labels && contains(env.labels, 'in progress') && env.LATEST_TAG != '' && env.HOTFIX_TYPE == '1' }}
+        id: get_latest_commit_tag
+        run: |
+          git fetch --all -v
+          
+          # Get the latest tag (if any)
+          TAG_OID=$(git rev-list -n 1 ${{ env.LATEST_TAG }})
+          
+          # Output the result
+          echo "Commit tag: $TAG_OID"
+          echo "TAG_OID=$TAG_OID" >> $GITHUB_ENV
+
       - name: Check Issue Title Format
         uses: actions/github-script@v6
         with:
@@ -152,7 +165,7 @@ jobs:
                   issue(number: $issueNumber) {
                     id
                   }
-                  ref(qualifiedName: "refs/${baseBranchName}") {
+                  ref(qualifiedName: "refs/heads/master") {
                     target {
                       ... on Commit {
                         oid
@@ -169,7 +182,7 @@ jobs:
 
             const repositoryId = repository.id;
             const issueId = repository.issue.id;
-            const branchOid = repository.ref.target.oid;
+            const branchOid = '${{ env.TAG_OID }}';
 
             console.log(`Linking branch "${newBranchName}" (oid: ${branchOid}) to issue #${issueNumber}`);
 
