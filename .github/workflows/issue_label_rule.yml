@@ -508,19 +508,19 @@ jobs:
             if (isHotfix) {
               title = '🔥🐛 Hotfix Actions'
               content = `
-              1. The tag \`[${tagBranch}](${tagUrl})\` was used to create the branch \`[${hotfixBranch}](${hotfixUrl})\`.
-              2. The branch \`[${hotfixBranch}](${hotfixUrl})\` was used to create the branch \`[${newBranchName}](${newRepoUrl})\`.
+              1. The tag [\`${tagBranch}\`](${tagUrl}) was used to create the branch [\`${hotfixBranch}\`](${hotfixUrl}).
+              2. The branch [\`${hotfixBranch}\`](${hotfixUrl}) was used to create the branch [\`${newBranchName}\`](${newRepoUrl}).
               `
               stepOn = 2
             } else if (isBugfix) {
               title = '🐛 Bugfix Actions'
               content = `
-              1. The branch \`[${developmentBranch}](${developmentUrl})\` was used to create the branch \`[${newBranchName}](${newRepoUrl})\`.
+              1. The branch [\`${developmentBranch}\`](${developmentUrl}) was used to create the branch [\`${newBranchName}\`](${newRepoUrl}).
               `
             } else if (isFeature) {
               title = '🛠️ Feature Actions'
               content = `
-              1. The branch \`[${developmentBranch}](${developmentUrl})\` was used to create the branch \`[${newBranchName}](${newRepoUrl})\`.
+              1. The branch [\`${developmentBranch}\`](${developmentUrl}) was used to create the branch [\`${newBranchName}\`](${newRepoUrl}).
               `
             }
             
