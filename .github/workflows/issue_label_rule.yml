@@ -442,7 +442,25 @@ jobs:
                 }
               }
             }
-            core.exportVariable('DELETED_BRANCHES', JSON.stringify(deletedBranches));
+            
+            for (let i = 0; i < deletedBranches.length; i++) {
+              const branch = deletedBranches[i];
+              console.log(`Processing branch: ${branch}`);
+              deletedBranchesMessage+=`\n${stepOn + i + 1}. The branch \`${branch}\` was removed.`
+            }
+            
+            const commentBody = `## 🗑️ Cleanup Actions:
+            ${deletedBranchesMessage}
+            `;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: commentBody,
+            });
+
+            console.log(`Commented on issue #${issueNumber}`);
 
       - name: Comment on Issue resume of hotfix actions
         if: ${{ env.labels && contains(env.labels, 'in progress') && env.TAG_OID != '' && env.LATEST_TAG != '' }}
@@ -472,11 +490,13 @@ jobs:
             const newRepoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${newBranchName}`;
 
             let deletedBranchesMessage = ''
-            for (let i = 0; i < deletedBranches.length; i++) {
-              const branch = deletedBranches[i];
-              if (branch.indexOf('feature/') > -1 || branch.indexOf('bugfix/') > -1) {
-                developmentBranch = branch;
-                developmentUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${developmentBranch}`;
+            if (!isHotfix) {
+              for (let i = 0; i < deletedBranches.length; i++) {
+                const branch = deletedBranches[i];
+                if (branch.indexOf('feature/') > -1 || branch.indexOf('bugfix/') > -1) {
+                  developmentBranch = branch;
+                  developmentUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${developmentBranch}`;
+                }
               }
             }
             
@@ -487,26 +507,26 @@ jobs:
             if (isHotfix) {
               title = '🔥🐛 Hotfix Actions'
               content = `
-              1. The tag [${tagBranch}](${tagUrl}) was used to create the branch [${hotfixBranch}](${hotfixUrl}).
-              2. The branch [${hotfixBranch}](${hotfixUrl}) was used to create the branch [${newBranchName}](${newRepoUrl}).
+              1. The tag \`[${tagBranch}](${tagUrl})\` was used to create the branch \`[${hotfixBranch}](${hotfixUrl})\`.
+              2. The branch \`[${hotfixBranch}](${hotfixUrl})\` was used to create the branch \`[${newBranchName}](${newRepoUrl})\`.
               `
               stepOn = 2
             } else if (isBugfix) {
               title = '🐛 Bugfix Actions'
               content = `
-              1. The branch [${developmentBranch}](${developmentUrl}) was used to create the branch [${newBranchName}](${newRepoUrl}).
+              1. The branch \`[${developmentBranch}](${developmentUrl})\` was used to create the branch \`[${newBranchName}](${newRepoUrl})\`.
               `
             } else if (isFeature) {
               title = '🛠️ Feature Actions'
               content = `
-              1. The branch [${developmentBranch}](${developmentUrl}) was used to create the branch [${newBranchName}](${newRepoUrl}).
+              1. The branch \`[${developmentBranch}](${developmentUrl})\` was used to create the branch \`[${newBranchName}](${newRepoUrl})\`.
               `
             }
             
             for (let i = 0; i < deletedBranches.length; i++) {
               const branch = deletedBranches[i];
               console.log(`Processing branch: ${branch}`);
-              deletedBranchesMessage+=`\n${stepOn + i + 1}. The branch ${branch} was removed.`
+              deletedBranchesMessage+=`\n${stepOn + i + 1}. The branch \`${branch}\` was removed.`
             }
             
             const commentBody = `## ${title}:
