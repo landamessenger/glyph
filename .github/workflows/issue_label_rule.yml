@@ -181,34 +181,39 @@ jobs:
             
             const repositoryId = repository.id;
             const issueId = repository.issue.id;
-            const branchOid = '${{ env.TAG_OID }}';
+            // const branchOid = '${{ env.TAG_OID }}';
+            const branchOid = repository.ref.target.oid;
 
             console.log(`Linking branch "${newBranchName}" (oid: ${branchOid}) to issue #${issueNumber}`);
 
-            const result = await github.graphql(`
-              mutation($issueId: ID!, $name: String!, $repositoryId: ID!, $oid: GitObjectID!) {
-                createLinkedBranch(input: {
-                  issueId: $issueId,
-                  name: $name,
-                  repositoryId: $repositoryId,
-                  oid: $oid,
-                }) {
-                  linkedBranch {
-                    id
-                    ref {
-                      name
+            try {
+              const result = await github.graphql(`
+                mutation($issueId: ID!, $name: String!, $repositoryId: ID!, $oid: GitObjectID!) {
+                  createLinkedBranch(input: {
+                    issueId: $issueId,
+                    name: $name,
+                    repositoryId: $repositoryId,
+                    oid: $oid,
+                  }) {
+                    linkedBranch {
+                      id
+                      ref {
+                        name
+                      }
                     }
                   }
                 }
-              }
-            `, {
-              issueId: issueId,
-              name: `/${newBranchName}`,
-              repositoryId: repositoryId,
-              oid: branchOid,
-            });
+              `, {
+                issueId: issueId,
+                name: `/${newBranchName}`,
+                repositoryId: repositoryId,
+                oid: branchOid,
+              });
 
-            console.log(`Hotfix branch successfully linked to issue: ${JSON.stringify(result)}`);    
+              console.log(`Hotfix branch successfully linked to issue: ${JSON.stringify(result)}`);    
+            } catch (error) {
+              console.error(error);
+            }
             core.exportVariable('HOTFIX_BRANCH', newBranchName);
             console.log(`env var HOTFIX_BRANCH exported: ${newBranchName}`);
 
