@@ -17,7 +17,8 @@ jobs:
 
       - name: Fetch all remote branches
         run: |
-          git fetch --all
+          git fetch --tags --force
+          git fetch --all -v
 
       - name: Get Latest Tag or Default to Master
         id: get_latest_tag
