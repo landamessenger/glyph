@@ -24,7 +24,7 @@ jobs:
       - name: Link Issue to Organization Project
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.REPO_PAT }}
           script: |
             const issueNumber = context.payload.issue.number;
             
