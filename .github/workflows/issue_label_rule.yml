@@ -46,38 +46,42 @@ jobs:
             
             console.log(JSON.stringify(issueResult))
             
-            const projectQuery = `
-              query($owner: String!, $projectNumber: Int!) {
-                organization(login: $owner) {
-                  projectV2(number: $projectNumber) {
-                    id
+            try {
+              const projectQuery = `
+                query($owner: String!, $projectNumber: Int!) {
+                  organization(login: $owner) {
+                    projectV2(number: $projectNumber) {
+                      id
+                    }
                   }
                 }
-              }
-            `;
-            const projectResult = await github.graphql(projectQuery, {
-              owner: context.repo.owner,
-              projectNumber: 3,
-            });
-            
-            console.log(JSON.stringify(projectResult))
-            const projectId = projectResult.organization.projectV2.id;
-            
-            const linkMutation = `
-              mutation($projectId: ID!, $contentId: ID!) {
-                addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
-                  item {
-                    id
+              `;
+              const projectResult = await github.graphql(projectQuery, {
+                owner: context.repo.owner,
+                projectNumber: 3,
+              });
+              
+              console.log(JSON.stringify(projectResult))
+              const projectId = projectResult.organization.projectV2.id;
+              
+              const linkMutation = `
+                mutation($projectId: ID!, $contentId: ID!) {
+                  addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                    item {
+                      id
+                    }
                   }
                 }
-              }
-            `;
-            const linkResult = await github.graphql(linkMutation, {
-              projectId: projectId,
-              contentId: issueId,
-            });
-            
-            console.log(`Issue linked to organization project: ${linkResult.addProjectV2ItemById.item.id}`);
+              `;
+              const linkResult = await github.graphql(linkMutation, {
+                projectId: projectId,
+                contentId: issueId,
+              });
+              
+              console.log(`Issue linked to organization project: ${linkResult.addProjectV2ItemById.item.id}`);
+            } catch (error) {
+              console.error(JSON.stringify(error))
+            }
 
       - name: Fetch all remote branches
         run: |
