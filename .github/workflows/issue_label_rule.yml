@@ -18,7 +18,7 @@ jobs:
 
       - name: Set development branch
         run: |
-          echo "BRANCH_MANAGEMENT_LABEL='branching'" >> $GITHUB_ENV
+          echo "BRANCH_MANAGEMENT_LABEL=branching" >> $GITHUB_ENV
           echo "DEVELOPMENT_BRANCH=master" >> $GITHUB_ENV
 
       - name: Link Issue to Organization Project
