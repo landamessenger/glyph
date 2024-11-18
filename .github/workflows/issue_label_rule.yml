@@ -58,7 +58,7 @@ jobs:
               `;
               const projectResult = await github.graphql(projectQuery, {
                 owner: context.repo.owner,
-                projectNumber: 3,
+                projectNumber: 2,
               });
               
               console.log(JSON.stringify(projectResult))
