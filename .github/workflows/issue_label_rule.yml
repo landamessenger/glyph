@@ -15,9 +15,66 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
       - name: Set development branch
         run: |
+          echo "BRANCH_MANAGEMENT_LABEL='branching'" >> $GITHUB_ENV
           echo "DEVELOPMENT_BRANCH=master" >> $GITHUB_ENV
+
+      - name: Link Issue to Project
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = context.payload.issue.number;
+
+            const issueQuery = `
+              query($repo: String!, $owner: String!, $issueNumber: Int!) {
+                repository(name: $repo, owner: $owner) {
+                  issue(number: $issueNumber) {
+                    id
+                  }
+                }
+              }
+            `;
+            const issueResult = await github.graphql(issueQuery, {
+              repo: context.repo.repo,
+              owner: context.repo.owner,
+              issueNumber: issueNumber,
+            });
+            const issueId = issueResult.repository.issue.id;
+
+            const projectQuery = `
+              query($repo: String!, $owner: String!, $projectNumber: Int!) {
+                repository(name: $repo, owner: $owner) {
+                  projectV2(number: $projectNumber) {
+                    id
+                  }
+                }
+              }
+            `;
+            const projectResult = await github.graphql(projectQuery, {
+              repo: context.repo.repo,
+              owner: context.repo.owner,
+              projectNumber: 2,
+            });
+            const projectId = projectResult.repository.projectV2.id;
+
+            const linkMutation = `
+              mutation($projectId: ID!, $contentId: ID!) {
+                addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                  item {
+                    id
+                  }
+                }
+              }
+            `;
+            const linkResult = await github.graphql(linkMutation, {
+              projectId: projectId,
+              contentId: issueId,
+            });
+
+            console.log(`Issue linked to project: ${linkResult.addProjectV2ItemById.item.id}`);
 
       - name: Fetch all remote branches
         run: |
@@ -125,7 +182,7 @@ jobs:
           echo "BRANCH_TYPE=$BRANCH_TYPE" >> $GITHUB_ENV
 
       - name: Link Hotfix Branch to Issue in Development Section
-        if: ${{ env.labels && contains(env.labels, 'in progress') && env.TAG_OID != '' && env.LATEST_TAG != '' && env.HOTFIX_TYPE == '1' }}
+        if: ${{ env.labels && contains(env.labels, env.BRANCH_MANAGEMENT_LABEL) && env.TAG_OID != '' && env.LATEST_TAG != '' && env.HOTFIX_TYPE == '1' }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.REPO_PAT }}
@@ -212,7 +269,7 @@ jobs:
             core.exportVariable('HOTFIX_BRANCH', newBranchName);
 
       - name: Link Branch to Issue in Development Section
-        if: ${{ env.labels && contains(env.labels, 'in progress') }}
+        if: ${{ env.labels && contains(env.labels, env.BRANCH_MANAGEMENT_LABEL) }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -246,6 +303,7 @@ jobs:
                   if (matchingBranch) {
                     baseBranchName = matchingBranch.name;
                     console.log(`Found branch: ${baseBranchName}`);
+                    core.exportVariable('FEATURE_ORIGIN', baseBranchName);
                     break;
                   }
                 } catch (error) {
@@ -313,7 +371,7 @@ jobs:
             console.log(`Branch successfully linked to issue: ${JSON.stringify(result)}`);    
 
       - name: Delete Unnecessary Branches (if exists)
-        if: ${{ env.labels && contains(env.labels, 'in progress') }}
+        if: ${{ env.labels && contains(env.labels, env.BRANCH_MANAGEMENT_LABEL) }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -380,7 +438,7 @@ jobs:
             core.exportVariable('DELETED_BRANCHES', JSON.stringify(deletedBranches));
 
       - name: Delete All Branches (if exists)
-        if: ${{ !env.labels || (!contains(env.labels, 'in progress')) }}
+        if: ${{ !env.labels || (!contains(env.labels, env.BRANCH_MANAGEMENT_LABEL)) }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -464,7 +522,7 @@ jobs:
             console.log(`Commented on issue #${issueNumber}`);
 
       - name: Comment on Issue resume of hotfix actions
-        if: ${{ env.labels && contains(env.labels, 'in progress') && env.TAG_OID != '' && env.LATEST_TAG != '' }}
+        if: ${{ env.labels && contains(env.labels, env.BRANCH_MANAGEMENT_LABEL) && env.TAG_OID != '' && env.LATEST_TAG != '' }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -479,6 +537,9 @@ jobs:
             const tagBranch = `tags/${tag}`;
             const tagUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${tagBranch}`;
 
+            const featureOriginBranch = '${{ env.FEATURE_ORIGIN }}';
+            const featureOriginUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${featureOriginBranch}`;
+            
             const defaultBranch = '${{ env.DEVELOPMENT_BRANCH }}';
             const defaultUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${defaultBranch}`;
             
@@ -528,7 +589,7 @@ jobs:
             } else if (isBugfix) {
               title = '🐛 Bugfix Actions'
               content = `
-              1. The branch [\`${developmentBranch}\`](${developmentUrl}) was used to create the branch [\`${newBranchName}\`](${newRepoUrl}).
+              1. The branch [\`${featureOriginBranch}\`](${featureOriginUrl}) was used to create the branch [\`${newBranchName}\`](${newRepoUrl}).
               `
               footer = `
               ### Reminder
@@ -540,7 +601,7 @@ jobs:
             } else if (isFeature) {
               title = '🛠️ Feature Actions'
               content = `
-              1. The branch [\`${developmentBranch}\`](${developmentUrl}) was used to create the branch [\`${newBranchName}\`](${newRepoUrl}).
+              1. The branch [\`${featureOriginBranch}\`](${featureOriginUrl}) was used to create the branch [\`${newBranchName}\`](${newRepoUrl}).
               `
               footer = `
               ### Reminder
