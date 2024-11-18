@@ -44,6 +44,8 @@ jobs:
             });
             const issueId = issueResult.repository.issue.id;
             
+            console.log(JSON.stringify(issueResult))
+            
             const projectQuery = `
               query($owner: String!, $projectNumber: Int!) {
                 organization(login: $owner) {
@@ -55,8 +57,10 @@ jobs:
             `;
             const projectResult = await github.graphql(projectQuery, {
               owner: context.repo.owner,
-              projectNumber: 2,
+              projectNumber: 3,
             });
+            
+            console.log(JSON.stringify(projectResult))
             const projectId = projectResult.organization.projectV2.id;
             
             const linkMutation = `
