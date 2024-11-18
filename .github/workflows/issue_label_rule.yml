@@ -18,6 +18,7 @@ jobs:
 
       - name: Set development branch
         run: |
+          echo "ORGANIZATION_PROJECTS=[2,3]" >> $GITHUB_ENV
           echo "BRANCH_MANAGEMENT_LABEL=branching" >> $GITHUB_ENV
           echo "DEVELOPMENT_BRANCH=master" >> $GITHUB_ENV
 
@@ -27,7 +28,8 @@ jobs:
           github-token: ${{ secrets.REPO_PAT }}
           script: |
             const issueNumber = context.payload.issue.number;
-            
+            const organizationProjects = JSON.parse(`${{ env.ORGANIZATION_PROJECTS }}` || '[]');
+
             const issueQuery = `
               query($repo: String!, $owner: String!, $issueNumber: Int!) {
                 repository(name: $repo, owner: $owner) {
@@ -46,41 +48,44 @@ jobs:
             
             console.log(JSON.stringify(issueResult))
             
-            try {
-              const projectQuery = `
-                query($owner: String!, $projectNumber: Int!) {
-                  organization(login: $owner) {
-                    projectV2(number: $projectNumber) {
-                      id
+            for (const project of organizationProjects) {
+              console.log(`Searching project ${project}`)
+              try {
+                const projectQuery = `
+                  query($owner: String!, $projectNumber: Int!) {
+                    organization(login: $owner) {
+                      projectV2(number: $projectNumber) {
+                        id
+                      }
                     }
                   }
-                }
-              `;
-              const projectResult = await github.graphql(projectQuery, {
-                owner: context.repo.owner,
-                projectNumber: 2,
-              });
-              
-              console.log(JSON.stringify(projectResult))
-              const projectId = projectResult.organization.projectV2.id;
-              
-              const linkMutation = `
-                mutation($projectId: ID!, $contentId: ID!) {
-                  addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
-                    item {
-                      id
+                `;
+                const projectResult = await github.graphql(projectQuery, {
+                  owner: context.repo.owner,
+                  projectNumber: 2,
+                });
+                
+                console.log(JSON.stringify(projectResult))
+                const projectId = projectResult.organization.projectV2.id;
+                
+                const linkMutation = `
+                  mutation($projectId: ID!, $contentId: ID!) {
+                    addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                      item {
+                        id
+                      }
                     }
                   }
-                }
-              `;
-              const linkResult = await github.graphql(linkMutation, {
-                projectId: projectId,
-                contentId: issueId,
-              });
-              
-              console.log(`Issue linked to organization project: ${linkResult.addProjectV2ItemById.item.id}`);
-            } catch (error) {
-              console.error(JSON.stringify(error))
+                `;
+                const linkResult = await github.graphql(linkMutation, {
+                  projectId: projectId,
+                  contentId: issueId,
+                });
+                
+                console.log(`Issue linked to organization project: ${linkResult.addProjectV2ItemById.item.id}`);
+              } catch (error) {
+                console.error(JSON.stringify(error))
+              }
             }
 
       - name: Fetch all remote branches
