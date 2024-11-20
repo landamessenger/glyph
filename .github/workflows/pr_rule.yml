@@ -1,0 +1,114 @@
+name: Handle Pull Request Link to Issue
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  link_pr_to_issue:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract Issue Number from Branch Name
+        id: extract_issue
+        run: |
+          branch_name="${{ github.event.pull_request.head.ref }}"
+          if [[ "$branch_name" =~ [a-zA-Z]+/([0-9]+)-.* ]]; then
+            echo "issue_number=${BASH_REMATCH[1]}" >> $GITHUB_ENV
+          else
+            echo "No issue number found in branch name: $branch_name"
+            exit 1
+          fi
+
+      - name: Check if PR is already linked to an issue
+        id: check_pr_link
+        uses: hossainemruz/linked-issues@main
+        with:
+          pr_url: ${{github.event.pull_request.html_url}}
+          format: IssueNumber
+
+      - name: Stop if PR is already linked
+        if: steps.check_pr_link.outputs.issues != ''
+        run: echo "PR already linked to an issue. Stopping job."
+
+      - name: Stop if PR is already linked
+        run: echo ${{ steps.check_pr_link.outputs.issues }}
+
+      - name: Change base branch to default
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const defaultBranch = context.payload.repository.default_branch;
+            const prNumber = context.payload.pull_request.number;
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              base: defaultBranch,
+            });
+
+            console.log(`Changed base branch to ${defaultBranch}`);
+
+      - name: Add "Resolves #[issue_number]" to PR description
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueNumber = process.env.issue_number;
+            const prNumber = context.payload.pull_request.number;
+            const prBody = context.payload.pull_request.body || "";
+
+            const updatedBody = `${prBody}\n\nResolves #${issueNumber}`;
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              body: updatedBody,
+            });
+
+            console.log(`Added "Resolves #${issueNumber}" to PR description`);
+        env:
+          issue_number: ${{ env.issue_number }}
+
+      - name: Wait 20 seconds
+        run: sleep 20
+
+      - name: Restore original base branch
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const originalBaseBranch = context.payload.pull_request.base.ref;
+            const prNumber = context.payload.pull_request.number;
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              base: originalBaseBranch,
+            });
+
+            console.log(`Restored original base branch to ${originalBaseBranch}`);
+
+      - name: Remove "Resolves #[issue_number]" from PR description
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueNumber = process.env.issue_number;
+            const prNumber = context.payload.pull_request.number;
+            const prBody = context.payload.pull_request.body || "";
+
+            const updatedBody = prBody.replace(`\n\nResolves #${issueNumber}`, "");
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              body: updatedBody,
+            });
+
+            console.log(`Removed "Resolves #${issueNumber}" from PR description`);
+        env:
+          issue_number: ${{ env.issue_number }}
