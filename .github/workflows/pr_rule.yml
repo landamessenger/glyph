@@ -70,12 +70,14 @@ jobs:
               }
             `;
 
-            const { data } = await github.graphql(queryProject, {
-              ownerName,
+            
+            const projectResult = await github.graphql(queryProject, {
+              ownerName: ownerName,
               projectNumber: parseInt(projectNumber, 10),
             });
 
-            const projectId = data[ownerQueryField].projectV2.id;
+            console.log(JSON.stringify(projectResult))
+            const projectId = projectResult[ownerQueryField].projectV2.id;
             const contentId = context.payload.pull_request.node_id;
 
             const mutation = `
