@@ -33,7 +33,6 @@ jobs:
         with:
           script: |
             const prUrl = context.payload.pull_request.html_url;
-            const fetch = require("node-fetch");
 
             console.log(`Fetching PR URL: ${prUrl}`);
             const htmlContent = await fetch(prUrl).then(res => res.text());
