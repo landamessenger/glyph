@@ -122,3 +122,33 @@ jobs:
             });
 
             console.log(`Removed "Resolves #${issueNumber}" from PR description`);
+
+      - name: Add a comment to the PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const defaultBranch = context.payload.repository.default_branch;
+            const originalBaseBranch = context.payload.pull_request.base.ref;
+            const issueNumber = process.env.issue_number;
+            const prNumber = context.payload.pull_request.number;
+            const commentBody = `
+            ## 🛠️ Pull Request Linking Summary
+            
+            The following actions were performed to ensure the pull request is properly linked to the related issue:
+              
+            1. The base branch was temporarily updated to \`${defaultBranch}\`.
+            2. The description was temporarily modified to include a reference to issue **#${issueNumber}**.
+            3. The base branch was reverted to its original value: \`${originalBaseBranch}\`.
+            4. The temporary issue reference **#${issueNumber}** was removed from the description.
+            
+            Thank you for contributing! 🙌
+            `;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: commentBody,
+            });
+            
+            console.log(`Comment added to PR #${prNumber}`);
