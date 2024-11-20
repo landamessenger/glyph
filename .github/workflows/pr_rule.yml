@@ -15,30 +15,38 @@ jobs:
     steps:
       - name: Extract Issue Number from Branch Name
         id: extract_issue
-        run: |
-          branch_name="${{ github.event.pull_request.head.ref }}"
-          if [[ "$branch_name" =~ [a-zA-Z]+/([0-9]+)-.* ]]; then
-            echo "issue_number=${BASH_REMATCH[1]}" >> $GITHUB_ENV
-          else
-            echo "No issue number found in branch name: $branch_name"
-            exit 1
-          fi
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const branchName = context.payload.pull_request.head.ref;
+            const match = branchName.match(/[a-zA-Z]+\/([0-9]+)-.*/);
+
+            if (match) {
+              core.exportVariable("issue_number", match[1]);
+            } else {
+              throw new Error(`No issue number found in branch name: ${branchName}`);
+            }
 
       - name: Check if PR is linked to an issue via HTML
         id: check_pr_link
-        run: |
-          pr_url="${{ github.event.pull_request.html_url }}"
-          echo "Fetching PR URL: $pr_url"
-          html_content=$(curl -s "$pr_url")
-          if echo "$html_content" | grep -q "has_github_issues=false"; then
-            echo "is_linked=false" >> $GITHUB_ENV
-          else
-            echo "is_linked=true" >> $GITHUB_ENV
-          fi
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const prUrl = context.payload.pull_request.html_url;
+            const fetch = require("node-fetch");
+
+            console.log(`Fetching PR URL: ${prUrl}`);
+            const htmlContent = await fetch(prUrl).then(res => res.text());
+
+            const isLinked = !htmlContent.includes("has_github_issues=false");
+            core.exportVariable("is_linked", isLinked);
+
+            console.log(`Is PR linked to an issue? ${isLinked}`);
+          result-encoding: string
 
       - name: Stop if PR is already linked
         if: env.is_linked == 'true'
-        run: echo "PR already linked to an issue. Stopping job."
+        run: exit 0
 
       - name: Change base branch to default
         uses: actions/github-script@v6
@@ -73,11 +81,13 @@ jobs:
             });
 
             console.log(`Added "Resolves #${issueNumber}" to PR description`);
-        env:
-          issue_number: ${{ env.issue_number }}
 
       - name: Wait 20 seconds
-        run: sleep 20
+        uses: actions/github-script@v6
+        with:
+          script: |
+            console.log("Waiting 20 seconds...");
+            await new Promise(resolve => setTimeout(resolve, 20000));
 
       - name: Restore original base branch
         uses: actions/github-script@v6
@@ -112,5 +122,3 @@ jobs:
             });
 
             console.log(`Removed "Resolves #${issueNumber}" from PR description`);
-        env:
-          issue_number: ${{ env.issue_number }}
