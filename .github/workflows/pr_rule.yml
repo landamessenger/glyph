@@ -43,11 +43,8 @@ jobs:
             console.log(`Is PR linked to an issue? ${isLinked}`);
           result-encoding: string
 
-      - name: Stop if PR is already linked
-        if: env.is_linked == 'true'
-        run: exit 0
-
       - name: Change base branch to default
+        if: env.is_linked != 'true'
         uses: actions/github-script@v6
         with:
           script: |
@@ -64,6 +61,7 @@ jobs:
             console.log(`Changed base branch to ${defaultBranch}`);
 
       - name: Add "Resolves #[issue_number]" to PR description
+        if: env.is_linked != 'true'
         uses: actions/github-script@v6
         with:
           script: |
@@ -83,6 +81,7 @@ jobs:
 
       - name: Wait 20 seconds
         uses: actions/github-script@v6
+        if: env.is_linked != 'true'
         with:
           script: |
             console.log("Waiting 20 seconds...");
@@ -90,6 +89,7 @@ jobs:
 
       - name: Restore original base branch
         uses: actions/github-script@v6
+        if: env.is_linked != 'true'
         with:
           script: |
             const originalBaseBranch = context.payload.pull_request.base.ref;
@@ -104,8 +104,9 @@ jobs:
 
             console.log(`Restored original base branch to ${originalBaseBranch}`);
 
-      - name: Remove "Resolves #[issue_number]" from PR description
+      - name: Remove "Resolves \#[issue_number]" from PR description
         uses: actions/github-script@v6
+        if: env.is_linked != 'true'
         with:
           script: |
             const issueNumber = process.env.issue_number;
