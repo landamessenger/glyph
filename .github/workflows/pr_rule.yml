@@ -46,11 +46,7 @@ jobs:
 
       - name: Stop if PR is already linked
         if: env.is_linked == 'true'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            console.log("PR already linked to an issue. Stopping job gracefully.");
-            return;
+        run: exit 0
 
       - name: Change base branch to default
         uses: actions/github-script@v6
