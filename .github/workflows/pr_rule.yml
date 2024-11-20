@@ -137,9 +137,11 @@ jobs:
 
             const { ownerType, ownerName, projectNumber } = projectMatch.groups;
 
+            const ownerQueryField = ownerType === 'orgs' ? 'organization' : 'user';
+
             const queryProject = `
               query($ownerName: String!, $projectNumber: Int!) {
-                ${ownerType}(login: $ownerName) {
+                ${ownerQueryField}(login: $ownerName) {
                   projectV2(number: $projectNumber) {
                     id
                   }
@@ -152,7 +154,7 @@ jobs:
               projectNumber: parseInt(projectNumber, 10),
             });
 
-            const projectId = data[ownerType].projectV2.id;
+            const projectId = data[ownerQueryField].projectV2.id;
             const contentId = context.payload.pull_request.node_id;
 
             const mutation = `
