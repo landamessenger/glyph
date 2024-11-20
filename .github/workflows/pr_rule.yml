@@ -43,6 +43,60 @@ jobs:
             console.log(`Is PR linked to an issue? ${isLinked}`);
           result-encoding: string
 
+      - name: Add PR to Project
+        if: env.is_linked != 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.REPO_PAT }}
+          script: |
+            const projectUrl = 'https://github.com/orgs/landamessenger/projects/3';
+            const projectMatch = projectUrl.match(/\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/);
+
+            if (!projectMatch || !projectMatch.groups) {
+              throw new Error(`Invalid project URL: ${projectUrl}`);
+            }
+
+            const { ownerType, ownerName, projectNumber } = projectMatch.groups;
+
+            const ownerQueryField = ownerType === 'orgs' ? 'organization' : 'user';
+
+            const queryProject = `
+              query($ownerName: String!, $projectNumber: Int!) {
+                ${ownerQueryField}(login: $ownerName) {
+                  projectV2(number: $projectNumber) {
+                    id
+                  }
+                }
+              }
+            `;
+
+            const { data } = await github.graphql(queryProject, {
+              ownerName,
+              projectNumber: parseInt(projectNumber, 10),
+            });
+
+            const projectId = data[ownerQueryField].projectV2.id;
+            const contentId = context.payload.pull_request.node_id;
+
+            const mutation = `
+              mutation($input: AddProjectV2ItemByIdInput!) {
+                addProjectV2ItemById(input: $input) {
+                  item {
+                    id
+                  }
+                }
+              }
+            `;
+
+            const response = await github.graphql(mutation, {
+              input: {
+                projectId,
+                contentId,
+              },
+            });
+
+            console.log('PR added to project with item ID:', response.addProjectV2ItemById.item.id);
+
       - name: Change base branch to default
         if: env.is_linked != 'true'
         uses: actions/github-script@v6
@@ -122,59 +176,6 @@ jobs:
             });
 
             console.log(`Removed "Resolves #${issueNumber}" from PR description`);
-
-      - name: Add PR to Project
-        if: env.is_linked != 'true'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const projectUrl = 'https://github.com/orgs/landamessenger/projects/3';
-            const projectMatch = projectUrl.match(/\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/);
-
-            if (!projectMatch || !projectMatch.groups) {
-              throw new Error(`Invalid project URL: ${projectUrl}`);
-            }
-
-            const { ownerType, ownerName, projectNumber } = projectMatch.groups;
-
-            const ownerQueryField = ownerType === 'orgs' ? 'organization' : 'user';
-
-            const queryProject = `
-              query($ownerName: String!, $projectNumber: Int!) {
-                ${ownerQueryField}(login: $ownerName) {
-                  projectV2(number: $projectNumber) {
-                    id
-                  }
-                }
-              }
-            `;
-
-            const { data } = await github.graphql(queryProject, {
-              ownerName,
-              projectNumber: parseInt(projectNumber, 10),
-            });
-
-            const projectId = data[ownerQueryField].projectV2.id;
-            const contentId = context.payload.pull_request.node_id;
-
-            const mutation = `
-              mutation($input: AddProjectV2ItemByIdInput!) {
-                addProjectV2ItemById(input: $input) {
-                  item {
-                    id
-                  }
-                }
-              }
-            `;
-
-            const response = await github.graphql(mutation, {
-              input: {
-                projectId,
-                contentId,
-              },
-            });
-
-            console.log('PR added to project with item ID:', response.addProjectV2ItemById.item.id);
 
       - name: Add a comment to the PR
         if: env.is_linked != 'true'
