@@ -24,19 +24,21 @@ jobs:
             exit 1
           fi
 
-      - name: Check if PR is already linked to an issue
+      - name: Check if PR is linked to an issue via HTML
         id: check_pr_link
-        uses: hossainemruz/linked-issues@main
-        with:
-          pr_url: ${{github.event.pull_request.html_url}}
-          format: IssueNumber
+        run: |
+          pr_url="${{ github.event.pull_request.html_url }}"
+          echo "Fetching PR URL: $pr_url"
+          html_content=$(curl -s "$pr_url")
+          if echo "$html_content" | grep -q "has_github_issues=false"; then
+            echo "is_linked=false" >> $GITHUB_ENV
+          else
+            echo "is_linked=true" >> $GITHUB_ENV
+          fi
 
       - name: Stop if PR is already linked
-        if: steps.check_pr_link.outputs.issues != ''
+        if: env.is_linked == 'true'
         run: echo "PR already linked to an issue. Stopping job."
-
-      - name: Stop if PR is already linked
-        run: echo ${{ steps.check_pr_link.outputs.issues }}
 
       - name: Change base branch to default
         uses: actions/github-script@v6
