@@ -20,7 +20,8 @@ jobs:
         run: |
           echo "ORGANIZATION_PROJECTS=[2,3]" >> $GITHUB_ENV
           echo "BRANCH_MANAGEMENT_LABEL=branching" >> $GITHUB_ENV
-          echo "DEVELOPMENT_BRANCH=master" >> $GITHUB_ENV
+          echo "DEVELOPMENT_BRANCH=development" >> $GITHUB_ENV
+          echo "DEFAULT_BRANCH=master" >> $GITHUB_ENV
 
       - name: Link Issue to Organization Project
         uses: actions/github-script@v7
