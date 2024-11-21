@@ -19,7 +19,7 @@ jobs:
       - name: Link Issue to Organization Project
         uses: landamessenger/git-board@master
         with:
-          action: issues
+          action: issue
           branch-management-label: branched
           default-branch: master
           development-branch: development
