@@ -20,7 +20,7 @@ jobs:
         uses: landamessenger/git-board@master
         with:
           action: issue
-          branch-management-label: branched
+          branch-management-label: branching
           default-branch: master
           development-branch: development
           project-urls: https://github.com/orgs/landamessenger/projects/2, https://github.com/orgs/landamessenger/projects/3
