@@ -2,7 +2,7 @@ name: Git Board - Pull Requests
 
 on:
   pull_request:
-    types: [opened, edited]
+    types: [opened, edited, labeled, unlabeled]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
