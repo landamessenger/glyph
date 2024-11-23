@@ -1,4 +1,5 @@
 name: Git Board - Issue
+
 on:
   issues:
     types: [opened, edited, labeled, unlabeled]
