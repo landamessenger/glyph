@@ -20,7 +20,7 @@ jobs:
       - name: Link Issue to Organization Project
         uses: landamessenger/git-board@master
         with:
-          action: pull_request
+          action: pull-request
           project-urls: https://github.com/orgs/landamessenger/projects/2, https://github.com/orgs/landamessenger/projects/3
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-token-personal: ${{ secrets.REPO_PAT }}
