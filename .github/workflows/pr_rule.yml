@@ -1,15 +1,16 @@
-name: Manage Branch on Label Change
+name: Git Board - Pull Requests
+
 on:
-  issues:
-    types: [opened, edited, labeled, unlabeled]
+  pull_request:
+    types: [opened, edited]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  create-or-delete-branch:
-    permissions: write-all
+  git-board-pull-requests:
+    name: Git Board - Pull Requests
     runs-on: ubuntu-latest
 
     steps:
@@ -19,10 +20,7 @@ jobs:
       - name: Link Issue to Organization Project
         uses: landamessenger/git-board@master
         with:
-          action: issue
-          branch-management-label: branching
-          default-branch: master
-          development-branch: develop
+          action: pull_request
           project-urls: https://github.com/orgs/landamessenger/projects/2, https://github.com/orgs/landamessenger/projects/3
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-token-personal: ${{ secrets.REPO_PAT }}

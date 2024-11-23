@@ -1,0 +1,26 @@
+name: Git Board - Issue
+on:
+  issues:
+    types: [opened, edited, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  git-board-issues:
+    name: Git Board - Issues
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check title, labels and branches
+        uses: landamessenger/git-board@master
+        with:
+          action: issue
+          project-urls: https://github.com/orgs/landamessenger/projects/2, https://github.com/orgs/landamessenger/projects/3
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token-personal: ${{ secrets.REPO_PAT }}
+
