@@ -22,6 +22,7 @@ jobs:
         with:
           action: issue
           project-urls: https://github.com/orgs/landamessenger/projects/2, https://github.com/orgs/landamessenger/projects/3
+          emoji-labeled-title: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-token-personal: ${{ secrets.REPO_PAT }}
 
