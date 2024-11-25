@@ -17,7 +17,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Check title, labels and branches
+      - name: Git Board - Issues
         uses: landamessenger/git-board@master
         with:
           action: issue
