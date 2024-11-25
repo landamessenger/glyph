@@ -17,7 +17,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Link Issue to Organization Project
+      - name: Git Board - Pull Requests
         uses: landamessenger/git-board@master
         with:
           action: pull-request
