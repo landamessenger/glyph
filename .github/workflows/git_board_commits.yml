@@ -21,6 +21,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-token-personal: ${{ secrets.REPO_PAT }}
           commit-prefix-builder: |
-            branchName + "-world";
+            branchName.replace("/", "-");
 
 

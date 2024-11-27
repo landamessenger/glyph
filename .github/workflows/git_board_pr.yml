@@ -22,6 +22,8 @@ jobs:
         with:
           action: pull-request
           project-urls: https://github.com/orgs/landamessenger/projects/2, https://github.com/orgs/landamessenger/projects/3
+          commit-prefix-builder: |
+            branchName.replace("/", "-");
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-token-personal: ${{ secrets.REPO_PAT }}
 
