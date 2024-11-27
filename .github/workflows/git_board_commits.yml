@@ -20,4 +20,7 @@ jobs:
           action: commit
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-token-personal: ${{ secrets.REPO_PAT }}
+          commit-prefix-builder: |
+            return branchName + "world";
+
 
