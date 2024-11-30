@@ -36,7 +36,3 @@ I.materialSymbolsSharp.appBadging
 I.cupertino.bookmarkSolid
 ```
 
-
-
-
-
